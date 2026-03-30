@@ -1,0 +1,37 @@
+# Normalize line endings to LF on commit for all text files
+* text=auto eol=lf
+
+# Rust source
+*.rs text eol=lf diff=rust
+
+# Cargo manifests and lock files
+Cargo.toml text eol=lf
+Cargo.lock text eol=lf
+
+# YAML / TOML / JSON
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Markdown and plain text
+*.md   text eol=lf
+*.txt  text eol=lf
+
+# Docker
+Dockerfile    text eol=lf
+.dockerignore text eol=lf
+
+# Makefile — tabs are significant, keep them
+Makefile text eol=lf
+
+# Binaries — do not mangle
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.wasm binary

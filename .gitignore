@@ -1,0 +1,19 @@
+target/
+.devcontainer/.cache/
+.env
+.env.*
+*.log
+devopster-config.yaml
+.DS_Store
+Thumbs.db
+
+# Rust build artifacts
+*.rs.bk
+
+# Editor and local workspace files
+.idea/
+.fleet/
+
+# Container and temporary files
+*.tmp
+*.temp
