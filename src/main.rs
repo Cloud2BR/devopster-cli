@@ -1,3 +1,5 @@
+mod ai;
+mod auth;
 mod cli;
 mod config;
 mod provider;

@@ -6,6 +6,7 @@ use base64::Engine;
 use reqwest::{header, Client, StatusCode, Url};
 use serde::{Deserialize, Serialize};
 
+use crate::auth;
 use crate::config::{AppConfig, AzureDevOpsConfig};
 
 use super::{
@@ -40,7 +41,10 @@ impl Provider for AzureDevOpsProvider {
         let endpoint = self.repositories_endpoint(organization)?;
         let response = self.client.get(endpoint).send().await.with_context(|| {
             format!("failed to call Azure DevOps repository API for project {}", self.project)
-        })?;
+        });
+
+        let response = response
+            .map_err(|e| auth::annotate_auth_error(e, "azure_devops"))?;
 
         if response.status() == StatusCode::NOT_FOUND {
             anyhow::bail!(
@@ -168,13 +172,24 @@ fn build_client(config: &AzureDevOpsConfig) -> Result<Client> {
         header::HeaderValue::from_static("application/json"),
     );
 
+    // Prefer env var (PAT → Basic auth); fall back to OAuth bearer token saved
+    // by `devopster login azure-devops`.
     if let Ok(token) = env::var(&config.token_env) {
+        // PAT-style: encode as Basic :{token}
         let encoded = base64::engine::general_purpose::STANDARD.encode(format!(":{token}"));
         let auth = format!("Basic {encoded}");
         headers.insert(
             header::AUTHORIZATION,
             header::HeaderValue::from_str(&auth)
                 .context("invalid Azure DevOps token header value")?,
+        );
+    } else if let Some(stored) = auth::load_token("azure_devops").ok().flatten() {
+        // OAuth bearer token from browser login.
+        let auth = format!("Bearer {}", stored.access_token);
+        headers.insert(
+            header::AUTHORIZATION,
+            header::HeaderValue::from_str(&auth)
+                .context("invalid Azure DevOps OAuth token header value")?,
         );
     }
 

@@ -1,6 +1,16 @@
 provider: github
 organization: MicrosoftCloudEssentials-LearningHub
 
+# Limit devopster commands to specific repositories.
+# Remove or leave empty to target all repositories in the organization.
+# scoped_repos:
+#   - my-service-repo
+#   - platform-infra
+
+# Enable GitHub Copilot-assisted suggestions for repos missing topics or descriptions.
+# Requires a Copilot subscription. Set during `devopster init` or add manually.
+# copilot_enabled: true
+
 github:
   api_url: https://api.github.com
   token_env: GITHUB_TOKEN

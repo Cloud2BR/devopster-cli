@@ -1,5 +1,6 @@
 pub mod catalog;
 pub mod init;
+pub mod login;
 pub mod repo;
 pub mod stats;
 pub mod topics;
@@ -30,6 +31,8 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
+    /// Authenticate with a provider via browser sign-in
+    Login(login::LoginCommand),
     Init(init::InitCommand),
     Repo(repo::RepoCommand),
     Catalog(catalog::CatalogCommand),
@@ -41,6 +44,7 @@ pub async fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Login(command) => command.run().await,
         Commands::Init(command) => command.run(&cli.config).await,
         Commands::Repo(command) => command.run(&cli.config).await,
         Commands::Catalog(command) => command.run(&cli.config).await,

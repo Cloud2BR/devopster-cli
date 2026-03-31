@@ -18,6 +18,13 @@ pub struct AppConfig {
     pub catalog: CatalogConfig,
     #[serde(default)]
     pub templates: Vec<TemplateConfig>,
+    /// When non-empty, devopster operations target only these repositories.
+    /// An empty list means all repositories in the organization.
+    #[serde(default)]
+    pub scoped_repos: Vec<String>,
+    /// Enable GitHub Copilot-assisted suggestions (requires a Copilot subscription).
+    #[serde(default)]
+    pub copilot_enabled: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

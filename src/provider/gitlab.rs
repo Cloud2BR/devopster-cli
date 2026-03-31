@@ -6,6 +6,7 @@ use base64::Engine;
 use reqwest::{header, Client, Url};
 use serde::{Deserialize, Serialize};
 
+use crate::auth;
 use crate::config::{AppConfig, GitLabConfig};
 
 use super::{
@@ -39,7 +40,9 @@ impl GitLabProvider {
 #[async_trait]
 impl Provider for GitLabProvider {
     async fn list_repositories(&self, organization: &str) -> Result<Vec<RepoSummary>> {
-        self.fetch_projects(organization).await
+        self.fetch_projects(organization)
+            .await
+            .map_err(|e| auth::annotate_auth_error(e, "gitlab"))
     }
 
     async fn audit_repositories(
@@ -306,11 +309,19 @@ fn build_client(config: &GitLabConfig) -> Result<Client> {
         header::HeaderValue::from_static("application/json"),
     );
 
+    // Prefer env var; fall back to OAuth bearer token saved by `devopster login gitlab`.
     if let Ok(token) = env::var(&config.token_env) {
         headers.insert(
             "PRIVATE-TOKEN",
             header::HeaderValue::from_str(&token)
                 .context("invalid GitLab token header value")?,
+        );
+    } else if let Some(stored) = auth::load_token("gitlab").ok().flatten() {
+        let auth = format!("Bearer {}", stored.access_token);
+        headers.insert(
+            header::AUTHORIZATION,
+            header::HeaderValue::from_str(&auth)
+                .context("invalid GitLab OAuth token header value")?,
         );
     }
 

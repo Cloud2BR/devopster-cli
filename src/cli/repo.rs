@@ -61,6 +61,7 @@ impl RepoCommand {
         match &self.action {
             RepoAction::List(command) => {
                 let repos = provider.list_repositories(&config.organization).await?;
+                let repos = scope_to_config(repos, &config.scoped_repos);
                 print_repos(filter_repos(repos, command.topic.as_deref()));
             }
             RepoAction::Audit(_) => {
@@ -72,6 +73,15 @@ impl RepoCommand {
                         },
                     )
                     .await?;
+                // Filter findings to scoped repos if set.
+                let findings = if config.scoped_repos.is_empty() {
+                    findings
+                } else {
+                    findings
+                        .into_iter()
+                        .filter(|f| config.scoped_repos.contains(&f.repository))
+                        .collect()
+                };
                 print_audit_findings(findings);
             }
             RepoAction::Sync(command) => {
@@ -90,6 +100,7 @@ impl RepoCommand {
                 }
 
                 let repos = provider.list_repositories(&config.organization).await?;
+                let repos = scope_to_config(repos, &config.scoped_repos);
                 let repos_to_sync: Vec<_> = if let Some(template_name) = &command.template {
                     let template = config
                         .templates
@@ -216,6 +227,15 @@ fn filter_repos(repos: Vec<RepoSummary>, topic: Option<&str>) -> Vec<RepoSummary
             .filter(|repo| repo.topics.iter().any(|topic| topic == topic_filter))
             .collect(),
         None => repos,
+    }
+}
+
+/// Keep only repos listed in `config.scoped_repos` (if non-empty).
+fn scope_to_config(repos: Vec<RepoSummary>, scoped: &[String]) -> Vec<RepoSummary> {
+    if scoped.is_empty() {
+        repos
+    } else {
+        repos.into_iter().filter(|r| scoped.contains(&r.name)).collect()
     }
 }
 

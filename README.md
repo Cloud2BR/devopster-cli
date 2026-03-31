@@ -31,7 +31,18 @@ The repository now includes:
 
 ## Container-First Workflow
 
-This project is designed to be developed inside a container.
+This project is designed to run inside a container. **The only required tool on your host machine is `make`**, everything else including Docker is installed automatically by `make setup`.
+
+### What `make setup` installs
+
+| Tool | Where | How |
+|---|---|---|
+| Homebrew | macOS only, if missing | Official install script |
+| Docker Desktop | macOS | `brew install --cask docker` |
+| Docker Engine | Debian/Ubuntu | Official apt repository |
+| `gh`, `az`, `glab`, Rust, `devopster` | Inside the container | Dockerfile |
+
+> On macOS, after Docker Desktop is installed for the first time you need to start it from Applications, then re-run `make setup`.
 
 ### VS Code Dev Container
 
@@ -43,18 +54,48 @@ This project is designed to be developed inside a container.
 ### Local Commands
 
 ```bash
+# First time on a new machine -- installs Docker if needed, builds the image,
+# and drops you into the container shell where devopster is ready to use:
 make setup
-make build
-make test
-make run ARGS="stats"
-make container-build
-make container-test
+
+# Inside the container:
+devopster init
+devopster repo list
 ```
+
+> To reopen the container shell after exiting, run `make setup` again or `make container-run`.
 
 ## Example Commands
 
+After `make setup` the `devopster` binary is on your `$PATH` and these commands work directly:
+
+| Command | Purpose |
+|---|---|
+| `devopster init` | Create `devopster-config.yaml` and interactively sign in to a provider |
+| `devopster init --no-login` | Create `devopster-config.yaml` only, skip the sign-in prompt |
+| `devopster login <github\|azure-devops\|gitlab>` | Sign in to that provider via browser, uses `gh`, `az`, or `glab` CLI |
+| `devopster login all` | Sign in to all three providers sequentially |
+| `devopster login status` | Show authentication status for all providers |
+| `devopster login logout <provider>` | Remove stored credentials for a provider |
+| `devopster repo list` | List all repositories in the configured organization |
+| `devopster repo list --topic rust` | Filter repositories by topic |
+| `devopster repo audit` | Audit repos for missing description, topics, license, and default branch |
+| `devopster repo scaffold --name <name> --template <template>` | Create a new repository from a template defined in config |
+| `devopster repo sync` | Push files from `.github/` to all repositories |
+| `devopster catalog generate` | Export a JSON catalog of all repositories |
+| `devopster topics align` | Add missing template topics to every matching repository |
+| `devopster stats` | Print a summary: provider, org, and total repository count |
+
+### Quick start inside the container
+
 ```bash
+# 1. build the image and install devopster
+make setup
+
+# 2. init: creates devopster-config.yaml and asks which provider to sign in to
 devopster init
+
+# 3. run any command
 devopster repo list
 devopster repo audit
 devopster repo scaffold --name sample-repo --template azure-overview
@@ -62,6 +103,8 @@ devopster catalog generate
 devopster topics align
 devopster stats
 ```
+
+> To skip the sign-in prompt: `devopster init --no-login`
 
 ## Configuration
 

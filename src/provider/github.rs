@@ -6,6 +6,7 @@ use base64::Engine;
 use reqwest::{header, Client, StatusCode, Url};
 use serde::{Deserialize, Serialize};
 
+use crate::auth;
 use crate::config::{AppConfig, GitHubConfig};
 
 use super::{
@@ -37,7 +38,9 @@ impl GitHubProvider {
 #[async_trait]
 impl Provider for GitHubProvider {
     async fn list_repositories(&self, organization: &str) -> Result<Vec<RepoSummary>> {
-        self.fetch_repositories(organization).await
+        self.fetch_repositories(organization)
+            .await
+            .map_err(|e| auth::annotate_auth_error(e, "github"))
     }
 
     async fn audit_repositories(
@@ -328,7 +331,15 @@ fn build_client(config: &GitHubConfig) -> Result<Client> {
         header::HeaderValue::from_static("application/vnd.github+json"),
     );
 
-    if let Ok(token) = env::var(&config.token_env) {
+    // Prefer env var; fall back to token saved by `devopster login github`.
+    let token = env::var(&config.token_env).ok().or_else(|| {
+        auth::load_token("github")
+            .ok()
+            .flatten()
+            .map(|t| t.access_token)
+    });
+
+    if let Some(token) = token {
         let auth = format!("Bearer {token}");
         headers.insert(
             header::AUTHORIZATION,
