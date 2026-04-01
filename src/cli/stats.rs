@@ -132,7 +132,7 @@ impl StatsCommand {
                 println!("      - {name}  [{branch}]");
             }
         } else {
-            println!("{:<w$} all {total} on '{required_branch}'", "  Correct branch:", "");
+            println!("{:<w$} all {total} on '{required_branch}'", "  Correct branch:");
         }
 
         println!("{thin}");
