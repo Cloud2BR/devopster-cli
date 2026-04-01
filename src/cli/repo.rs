@@ -245,15 +245,37 @@ fn print_repos(repos: Vec<RepoSummary>) {
         return;
     }
 
+    let total = repos.len();
+    let separator = "-".repeat(72);
+
+    println!("{separator}");
     for repo in repos {
-        println!("- {} ({})", repo.name, repo.provider);
+        // Name + provider badge on the same line
+        println!("{:<55} [{}]", repo.name, repo.provider);
+
+        // Description (wrapped to keep the block readable)
         if !repo.description.is_empty() {
-            println!("  {}", repo.description);
+            // Truncate long descriptions to keep output scannable
+            let desc = if repo.description.chars().count() > 120 {
+                format!("{}...", repo.description.chars().take(120).collect::<String>())
+            } else {
+                repo.description.clone()
+            };
+            println!("  {desc}");
         }
-        if let Some(web_url) = repo.web_url {
-            println!("  URL: {web_url}");
+
+        // Topics
+        if !repo.topics.is_empty() {
+            println!("  topics: {}", repo.topics.join(", "));
         }
+
+        // URL
+        if let Some(url) = repo.web_url {
+            println!("  {url}");
+        }
+        println!("{separator}");
     }
+    println!("{total} repositories");
 }
 
 fn collect_sync_files(source: &std::path::Path) -> Result<Vec<(String, Vec<u8>)>> {

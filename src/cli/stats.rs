@@ -13,9 +13,24 @@ impl StatsCommand {
         let provider = ProviderFactory::from_config(&config)?;
         let repos = provider.list_repositories(&config.organization).await?;
 
-        println!("Organization: {}", config.organization);
-        println!("Provider: {}", config.provider.as_str());
-        println!("Repositories discovered: {}", repos.len());
+        let scoped = config.scoped_repos.len();
+        let total = repos.len();
+
+        let separator = "=".repeat(40);
+        println!("{separator}");
+        println!("  devopster stats");
+        println!("{separator}");
+        let w = 22usize;
+        println!("{:<w$} {}", "  Organization:", config.organization);
+        println!("{:<w$} {}", "  Provider:", config.provider.as_str());
+        println!("{:<w$} {}", "  Repositories:", total);
+        if scoped > 0 {
+            println!("{:<w$} {} of {total}", "  Scoped to:", scoped);
+        }
+        if config.copilot_enabled {
+            println!("{:<w$} enabled", "  Copilot:");
+        }
+        println!("{separator}");
 
         Ok(())
     }

@@ -82,17 +82,6 @@ impl InitCommand {
         println!();
 
         // ── Step 6: Write config ──────────────────────────────────────────────
-        if Path::new(destination).exists() {
-            print!("Config already exists at {destination}. Overwrite? [y/N]: ");
-            io::stdout().flush().ok();
-            let mut ow = String::new();
-            io::stdin().read_line(&mut ow).ok();
-            if !ow.trim().eq_ignore_ascii_case("y") {
-                println!("Keeping existing config. Run `devopster repo list` to verify it.");
-                return Ok(());
-            }
-        }
-
         let yaml = build_config_yaml(
             provider,
             &org,
@@ -101,12 +90,59 @@ impl InitCommand {
             &scoped_repos,
             copilot_enabled,
         );
+
+        if Path::new(destination).exists() {
+            let existing = std::fs::read_to_string(destination).unwrap_or_default();
+            if existing == yaml {
+                println!("Configuration is already up to date at {destination}.");
+                println!();
+                println!("Run `devopster repo list` to get started.");
+                return Ok(());
+            }
+
+            // Show what will change.
+            println!("Configuration summary (will be saved to {destination}):");
+            println!();
+            print_config_summary(provider, &org, project.as_deref(), &scoped_repos, copilot_enabled);
+
+            // Show what is currently in the file so the user can see what they'd lose.
+            println!();
+            println!("Existing file contents:");
+            println!("  {}", existing.lines().take(8).collect::<Vec<_>>().join("\n  "));
+            if existing.lines().count() > 8 {
+                println!("  ... ({} more lines)", existing.lines().count().saturating_sub(8));
+            }
+            println!();
+            print!("Apply these values? [Y/n]: ");
+            io::stdout().flush().ok();
+            let mut ow = String::new();
+            io::stdin().read_line(&mut ow).ok();
+            let answer = ow.trim();
+            if answer.eq_ignore_ascii_case("n") {
+                println!("Keeping existing config.");
+                return Ok(());
+            }
+        } else {
+            println!("Configuration summary (will be saved to {destination}):");
+            println!();
+            print_config_summary(provider, &org, project.as_deref(), &scoped_repos, copilot_enabled);
+            println!();
+            print!("Save this configuration? [Y/n]: ");
+            io::stdout().flush().ok();
+            let mut confirm = String::new();
+            io::stdin().read_line(&mut confirm).ok();
+            if confirm.trim().eq_ignore_ascii_case("n") {
+                println!("Cancelled.");
+                return Ok(());
+            }
+        }
+
         std::fs::write(destination, &yaml)
             .with_context(|| format!("failed to write config to {destination}"))?;
 
-        println!("Config written to {destination}.");
         println!();
-        println!("Next: run `devopster repo list` to verify everything is set up correctly.");
+        println!("Configuration saved to {destination}.");
+        println!("Run `devopster repo list` to get started.");
 
         Ok(())
     }
@@ -449,15 +485,40 @@ async fn fetch_repo_names(
 // ── Copilot prompt ────────────────────────────────────────────────────────────
 
 async fn ask_copilot_enabled() -> bool {
-    println!("Would you like to enable Copilot-assisted suggestions for repos that are");
-    println!("missing topics or descriptions? (Requires a GitHub Copilot subscription.) [y/N]: ");
+    print!("Enable Copilot-assisted suggestions for repos missing topics or descriptions? \
+            (Requires a GitHub Copilot subscription.) [Y/n]: ");
     io::stdout().flush().ok();
 
     let mut input = String::new();
     if io::stdin().read_line(&mut input).is_err() {
-        return false;
+        return true;
     }
-    input.trim().eq_ignore_ascii_case("y")
+    let trimmed = input.trim();
+    // Default is Y — only 'n' or 'no' disables it.
+    trimmed.is_empty() || !trimmed.eq_ignore_ascii_case("n")
+}
+
+// ── Config summary display ────────────────────────────────────────────────────
+
+fn print_config_summary(
+    provider: &str,
+    org: &str,
+    project: Option<&str>,
+    scoped_repos: &[String],
+    copilot_enabled: bool,
+) {
+    let w = 18usize;
+    println!("  {:<w$} {}", "Provider:", provider_display(provider));
+    println!("  {:<w$} {}", "Organization:", org);
+    if let Some(p) = project {
+        println!("  {:<w$} {}", "Project:", p);
+    }
+    if scoped_repos.is_empty() {
+        println!("  {:<w$} all repositories", "Scope:");
+    } else {
+        println!("  {:<w$} {} selected: {}", "Scope:", scoped_repos.len(), scoped_repos.join(", "));
+    }
+    println!("  {:<w$} {}", "Copilot:", if copilot_enabled { "enabled" } else { "disabled" });
 }
 
 // ── Config YAML builder ───────────────────────────────────────────────────────
