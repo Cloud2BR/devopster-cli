@@ -17,3 +17,4 @@ Thumbs.db
 # Container and temporary files
 *.tmp
 *.temp
+.devopster_open_url

@@ -296,9 +296,21 @@ fn which(bin: &str) -> Result<()> {
     }
 }
 
-/// Open `url` in the system default browser. Failure is non-fatal because
-/// the terminal hyperlink lets the user click it manually.
+/// Open `url` in the system default browser.
+///
+/// On the host (macOS/Windows/Linux with a display) the OS command is used
+/// directly.  Inside a Docker container there is no display — instead the URL
+/// is written to `/app/.devopster_open_url` (the mounted project directory).
+/// `setup.sh` runs a lightweight watcher on the host that reads that file and
+/// calls `open` so the browser pops up automatically on the host machine.
 fn open_browser(url: &str) {
+    // Inside a Docker container /.dockerenv always exists.
+    if std::path::Path::new("/.dockerenv").exists() {
+        // Signal the host-side watcher in setup.sh.
+        let _ = std::fs::write("/app/.devopster_open_url", url);
+        return;
+    }
+
     let result = if cfg!(target_os = "macos") {
         Command::new("open").arg(url).spawn()
     } else if cfg!(target_os = "windows") {
