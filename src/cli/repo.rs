@@ -4,7 +4,7 @@ use std::io::{self, Write};
 
 use crate::config::AppConfig;
 use crate::provider::{
-    AuditFinding, AuditPolicy, ProviderFactory, RepoSummary, RepoVisibility, ScaffoldRequest,
+    AuditFinding, AuditPolicy, BlueprintRequest, ProviderFactory, RepoSummary, RepoVisibility,
 };
 
 #[derive(Debug, Args)]
@@ -23,8 +23,8 @@ pub enum RepoAction {
     Fix(FixReposCommand),
     /// Push files from a local directory to all matching repositories
     Sync(SyncReposCommand),
-    /// Create a new repository from a named template
-    Scaffold(ScaffoldRepoCommand),
+    /// Create a new repository from a named blueprint
+    Blueprint(BlueprintRepoCommand),
 }
 
 #[derive(Debug, Args)]
@@ -49,7 +49,7 @@ pub struct SyncReposCommand {
 }
 
 #[derive(Debug, Args)]
-pub struct ScaffoldRepoCommand {
+pub struct BlueprintRepoCommand {
     #[arg(long)]
     pub name: String,
 
@@ -186,7 +186,7 @@ impl RepoCommand {
                     "Sync complete: {sync_count} file(s) synced, {error_count} error(s)."
                 );
             }
-            RepoAction::Scaffold(command) => {
+            RepoAction::Blueprint(command) => {
                 let template = config
                     .templates
                     .iter()
@@ -196,7 +196,7 @@ impl RepoCommand {
                         anyhow::anyhow!("template '{}' was not found in the config", command.template)
                     })?;
 
-                let request = ScaffoldRequest {
+                let request = BlueprintRequest {
                     name: command.name.clone(),
                     description: command
                         .description
@@ -211,7 +211,7 @@ impl RepoCommand {
                 };
 
                 let result = provider
-                    .scaffold_repository(&config.organization, &request)
+                    .blueprint_repository(&config.organization, &request)
                     .await?;
 
                 println!("Created repository '{}' via {}.", result.name, result.provider);

@@ -50,7 +50,7 @@ pub enum RepoVisibility {
 }
 
 #[derive(Debug, Clone)]
-pub struct ScaffoldRequest {
+pub struct BlueprintRequest {
     pub name: String,
     pub description: String,
     pub visibility: RepoVisibility,
@@ -58,7 +58,7 @@ pub struct ScaffoldRequest {
 }
 
 #[derive(Debug, Clone)]
-pub struct ScaffoldResult {
+pub struct BlueprintResult {
     pub name: String,
     pub provider: &'static str,
     pub web_url: Option<String>,
@@ -74,11 +74,11 @@ pub trait Provider: Send + Sync {
         policy: &AuditPolicy,
     ) -> Result<Vec<AuditFinding>>;
 
-    async fn scaffold_repository(
+    async fn blueprint_repository(
         &self,
         organization: &str,
-        request: &ScaffoldRequest,
-    ) -> Result<ScaffoldResult>;
+        request: &BlueprintRequest,
+    ) -> Result<BlueprintResult>;
 
     /// Overwrite the full topic list for a single repository.
     /// Providers that do not support topics may use the default no-op.

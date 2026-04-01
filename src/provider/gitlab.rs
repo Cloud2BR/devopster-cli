@@ -10,8 +10,8 @@ use crate::auth;
 use crate::config::{AppConfig, GitLabConfig};
 
 use super::{
-    AuditFinding, AuditPolicy, Provider, RepoSummary, RepoVisibility, ScaffoldRequest,
-    ScaffoldResult,
+    AuditFinding, AuditPolicy, BlueprintRequest, BlueprintResult, Provider, RepoSummary,
+    RepoVisibility,
 };
 
 pub struct GitLabProvider {
@@ -98,11 +98,11 @@ impl Provider for GitLabProvider {
         Ok(findings)
     }
 
-    async fn scaffold_repository(
+    async fn blueprint_repository(
         &self,
         organization: &str,
-        request: &ScaffoldRequest,
-    ) -> Result<ScaffoldResult> {
+        request: &BlueprintRequest,
+    ) -> Result<BlueprintResult> {
         let endpoint = self.url("/projects");
 
         let payload = CreateGitLabProjectRequest {
@@ -160,7 +160,7 @@ impl Provider for GitLabProvider {
                 })?;
         }
 
-        Ok(ScaffoldResult {
+        Ok(BlueprintResult {
             name: project.name,
             provider: "gitlab",
             web_url: project.web_url,

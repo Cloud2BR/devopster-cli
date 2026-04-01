@@ -36,7 +36,7 @@ Commands:
 {tab}| devopster repo list --topic <topic>           | Filter repositories by topic                      |
 {tab}| devopster repo audit                          | Audit repos against the configured policy         |
 {tab}| devopster repo fix                            | Prompt to fix missing metadata                    |
-{tab}| devopster repo scaffold                       | Create a new repository from a template           |
+{tab}| devopster repo blueprint                      | Create a new repository from a blueprint          |
 {tab}| devopster repo sync                           | Push files from .github/ to all repositories      |
 {tab}+-----------------------------------------------+---------------------------------------------------+
 {tab}| devopster catalog generate                    | Export a catalog.json of all repositories         |
@@ -71,7 +71,7 @@ pub enum Commands {
     Login(login::LoginCommand),
     /// Create devopster-config.yaml interactively and optionally sign in
     Init(init::InitCommand),
-    /// List, audit, scaffold, and sync repositories
+    /// List, audit, blueprint, and sync repositories
     Repo(repo::RepoCommand),
     /// Generate a machine-readable org catalog (catalog.json)
     Catalog(catalog::CatalogCommand),

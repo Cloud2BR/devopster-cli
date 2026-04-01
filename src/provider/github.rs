@@ -10,8 +10,8 @@ use crate::auth;
 use crate::config::{AppConfig, GitHubConfig};
 
 use super::{
-    AuditFinding, AuditPolicy, Provider, RepoSummary, RepoVisibility, ScaffoldRequest,
-    ScaffoldResult,
+    AuditFinding, AuditPolicy, BlueprintRequest, BlueprintResult, Provider, RepoSummary,
+    RepoVisibility,
 };
 
 pub struct GitHubProvider {
@@ -112,11 +112,11 @@ impl Provider for GitHubProvider {
         Ok(findings)
     }
 
-    async fn scaffold_repository(
+    async fn blueprint_repository(
         &self,
         organization: &str,
-        request: &ScaffoldRequest,
-    ) -> Result<ScaffoldResult> {
+        request: &BlueprintRequest,
+    ) -> Result<BlueprintResult> {
         let endpoint = self
             .api_url
             .join(&format!("/orgs/{organization}/repos"))
@@ -193,7 +193,7 @@ impl Provider for GitHubProvider {
         )
         .await?;
 
-        Ok(ScaffoldResult {
+        Ok(BlueprintResult {
             name: repository.name,
             provider: "github",
             web_url: repository.web_url,

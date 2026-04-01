@@ -10,8 +10,8 @@ use crate::auth;
 use crate::config::{AppConfig, AzureDevOpsConfig};
 
 use super::{
-    AuditFinding, AuditPolicy, Provider, RepoSummary, RepoVisibility, ScaffoldRequest,
-    ScaffoldResult,
+    AuditFinding, AuditPolicy, BlueprintRequest, BlueprintResult, Provider, RepoSummary,
+    RepoVisibility,
 };
 
 pub struct AzureDevOpsProvider {
@@ -103,11 +103,11 @@ impl Provider for AzureDevOpsProvider {
         Ok(findings)
     }
 
-    async fn scaffold_repository(
+    async fn blueprint_repository(
         &self,
         organization: &str,
-        request: &ScaffoldRequest,
-    ) -> Result<ScaffoldResult> {
+        request: &BlueprintRequest,
+    ) -> Result<BlueprintResult> {
         let endpoint = self.repositories_endpoint(organization)?;
         let payload = CreateAzureDevOpsRepositoryRequest {
             name: request.name.clone(),
@@ -140,7 +140,7 @@ impl Provider for AzureDevOpsProvider {
 
         let _ = matches!(request.visibility, RepoVisibility::Private);
 
-        Ok(ScaffoldResult {
+        Ok(BlueprintResult {
             name: repository.name,
             provider: "azure_devops",
             web_url: repository.web_url,

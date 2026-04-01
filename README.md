@@ -4,7 +4,7 @@
 
 ## What It Is
 
-> This project is a container-first CLI for repository governance and maintenance at scale. The goal is to give you a single tool that can scaffold repositories, audit standards, sync shared files, generate catalogs, and align metadata across multiple source-control platforms.
+> This project is a container-first CLI for repository governance and maintenance at scale. The goal is to give you a single tool that can blueprint repositories, audit standards, sync shared files, generate catalogs, and align metadata across multiple source-control platforms.
 
 ## Why This Repo Exists
 
@@ -13,7 +13,7 @@
 - keeping repo metadata aligned
 - copying workflows and templates between repos
 - auditing descriptions, topics, and licensing
-- scaffolding new repositories from a standard template
+- blueprinting new repositories from a standard template
 - generating a reusable catalog of projects
 
 `devopster` is intended to centralize that work behind one CLI and one config file.
@@ -81,7 +81,7 @@ After `make setup` the `devopster` binary is on your `$PATH` and these commands 
 | `devopster repo list --topic rust` | Filter repositories by topic |
 | `devopster repo audit` | Audit repos for missing description, topics, license, and default branch |
 | `devopster repo fix` | Prompt for missing description, topics, and license in scoped repos |
-| `devopster repo scaffold --name <name> --template <template>` | Create a new repository from a template defined in config |
+| `devopster repo blueprint --name <name> --template <template>` | Create a new repository from a template defined in config |
 | `devopster repo sync` | Push files from `.github/` to all repositories |
 | `devopster catalog generate` | Export a JSON catalog of all repositories |
 | `devopster topics align` | Add missing template topics to every matching repository |
@@ -100,7 +100,7 @@ devopster init
 # 3. run any command
 devopster repo list
 devopster repo audit
-devopster repo scaffold --name sample-repo --template azure-overview
+devopster repo blueprint --name sample-repo --template azure-overview
 devopster catalog generate
 devopster topics align
 devopster stats
@@ -126,4 +126,4 @@ Then set the provider and token environment variables you want to use.
 ## Next Steps
 
 - add repository creation and file sync logic *(template structure TBD)*
-- render templates for new repository scaffolding *(template structure TBD)*
+- render templates for new repository blueprints *(template structure TBD)*
