@@ -11,12 +11,19 @@ pub mod gitlab;
 #[derive(Debug, Clone, Serialize)]
 pub struct RepoSummary {
     pub name: String,
+    pub full_name: Option<String>,
     pub description: String,
     pub topics: Vec<String>,
     pub license: Option<String>,
     pub default_branch: Option<String>,
     pub web_url: Option<String>,
     pub provider: &'static str,
+    pub language: Option<String>,
+    pub archived: bool,
+    pub is_private: bool,
+    pub stargazers_count: Option<u64>,
+    pub forks_count: Option<u64>,
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone)]

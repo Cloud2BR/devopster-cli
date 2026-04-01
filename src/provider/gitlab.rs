@@ -365,6 +365,8 @@ struct GitLabProject {
     id: u64,
     name: String,
     #[serde(default)]
+    path_with_namespace: Option<String>,
+    #[serde(default)]
     description: Option<String>,
     #[serde(default)]
     topics: Vec<String>,
@@ -372,18 +374,36 @@ struct GitLabProject {
     default_branch: Option<String>,
     #[serde(default)]
     web_url: Option<String>,
+    #[serde(default)]
+    visibility: Option<String>,
+    #[serde(default)]
+    archived: bool,
+    #[serde(default)]
+    star_count: Option<u64>,
+    #[serde(default)]
+    forks_count: Option<u64>,
+    #[serde(default)]
+    last_activity_at: Option<String>,
 }
 
 impl From<GitLabProject> for RepoSummary {
     fn from(value: GitLabProject) -> Self {
+        let is_private = value.visibility.as_deref() == Some("private");
         Self {
             name: value.name,
+            full_name: value.path_with_namespace,
             description: value.description.unwrap_or_default(),
             topics: value.topics,
             license: None,
             default_branch: value.default_branch,
             web_url: value.web_url,
             provider: "gitlab",
+            language: None,
+            archived: value.archived,
+            is_private,
+            stargazers_count: value.star_count,
+            forks_count: value.forks_count,
+            updated_at: value.last_activity_at,
         }
     }
 }

@@ -126,7 +126,7 @@ Then set the provider and token environment variables you want to use.
 The current scaffold is intentionally focused on the architecture and containerized workflow. The next implementation steps are:
 
 - wire real provider SDKs and REST clients
-- add repository creation and file sync logic
+- add repository creation and file sync logic *(template structure TBD)*
 - implement policy-based auditing
-- render templates for new repository scaffolding
-- generate machine-readable and web-friendly org catalogs
+- render templates for new repository scaffolding *(template structure TBD)*
+- generate machine-readable and web-friendly org catalogs — reference implementation: [MicrosoftCloudEssentials-LearningHub/org-catalog](https://github.com/MicrosoftCloudEssentials-LearningHub/org-catalog)

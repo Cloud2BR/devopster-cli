@@ -358,6 +358,8 @@ fn build_client(config: &GitHubConfig) -> Result<Client> {
 struct GitHubRepository {
     name: String,
     #[serde(default)]
+    full_name: Option<String>,
+    #[serde(default)]
     description: Option<String>,
     #[serde(default)]
     topics: Vec<String>,
@@ -369,18 +371,39 @@ struct GitHubRepository {
     web_url: Option<String>,
     #[serde(default)]
     license: Option<GitHubLicense>,
+    #[serde(default)]
+    language: Option<String>,
+    #[serde(default)]
+    archived: bool,
+    #[serde(rename = "private", default)]
+    is_private: bool,
+    #[serde(default)]
+    stargazers_count: Option<u64>,
+    #[serde(default)]
+    forks_count: Option<u64>,
+    #[serde(default)]
+    pushed_at: Option<String>,
+    #[serde(default)]
+    updated_at: Option<String>,
 }
 
 impl From<GitHubRepository> for RepoSummary {
     fn from(value: GitHubRepository) -> Self {
         Self {
             name: value.name,
+            full_name: value.full_name,
             description: value.description.unwrap_or_default(),
             topics: value.topics,
             license: value.license.and_then(|license| license.spdx_id),
             default_branch: value.default_branch,
             web_url: value.web_url.or(value.html_url),
             provider: "github",
+            language: value.language,
+            archived: value.archived,
+            is_private: value.is_private,
+            stargazers_count: value.stargazers_count,
+            forks_count: value.forks_count,
+            updated_at: value.pushed_at.or(value.updated_at),
         }
     }
 }

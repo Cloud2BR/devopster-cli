@@ -218,6 +218,7 @@ impl From<AzureDevOpsRepository> for RepoSummary {
     fn from(value: AzureDevOpsRepository) -> Self {
         Self {
             name: value.name,
+            full_name: None,
             description: String::new(),
             topics: Vec::new(),
             license: None,
@@ -227,6 +228,12 @@ impl From<AzureDevOpsRepository> for RepoSummary {
                 .map(|branch| branch.trim_start_matches("refs/heads/").to_string()),
             web_url: value.web_url,
             provider: "azure_devops",
+            language: None,
+            archived: false,
+            is_private: false,
+            stargazers_count: None,
+            forks_count: None,
+            updated_at: None,
         }
     }
 }
