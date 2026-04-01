@@ -21,22 +21,27 @@ use clap::{Parser, Subcommand};
 Usage: devopster [OPTIONS] <COMMAND>
 
 Commands:
-{tab}+-------------------+---------------------------------------------------+
-{tab}| login             | Authenticate with a provider via browser sign-in  |
-{tab}+-------------------+---------------------------------------------------+
-{tab}| init              | Create devopster-config.yaml and sign in          |
-{tab}+-------------------+---------------------------------------------------+
-{tab}| repo list         | List repositories (optionally filter by topic)    |
-{tab}| repo audit        | Audit repos against the configured policy         |
-{tab}| repo scaffold     | Create a new repository from a template           |
-{tab}| repo sync         | Push files from .github/ to all repositories      |
-{tab}+-------------------+---------------------------------------------------+
-{tab}| catalog generate  | Export a catalog.json of all repositories         |
-{tab}+-------------------+---------------------------------------------------+
-{tab}| topics align      | Add missing template topics to repositories       |
-{tab}+-------------------+---------------------------------------------------+
-{tab}| stats             | Print org-wide metadata coverage and compliance   |
-{tab}+-------------------+---------------------------------------------------+
+{tab}+------------------------+---------------------------------------------------+
+{tab}| login github           | Sign in to GitHub via browser (gh CLI)            |
+{tab}| login azure-devops     | Sign in to Azure DevOps via browser (az CLI)      |
+{tab}| login gitlab           | Sign in to GitLab via browser (glab CLI)          |
+{tab}| login all              | Sign in to all three providers sequentially       |
+{tab}| login status           | Show authentication status for all providers      |
+{tab}| login logout <provider>| Remove stored credentials for a provider          |
+{tab}+------------------------+---------------------------------------------------+
+{tab}| init                   | Create devopster-config.yaml and sign in          |
+{tab}+------------------------+---------------------------------------------------+
+{tab}| repo list              | List repositories (optionally filter by topic)    |
+{tab}| repo audit             | Audit repos against the configured policy         |
+{tab}| repo scaffold          | Create a new repository from a template           |
+{tab}| repo sync              | Push files from .github/ to all repositories      |
+{tab}+------------------------+---------------------------------------------------+
+{tab}| catalog generate       | Export a catalog.json of all repositories         |
+{tab}+------------------------+---------------------------------------------------+
+{tab}| topics align           | Add missing template topics to repositories       |
+{tab}+------------------------+---------------------------------------------------+
+{tab}| stats                  | Print org-wide metadata coverage and compliance   |
+{tab}+------------------------+---------------------------------------------------+
 
 Options:
 {options}
