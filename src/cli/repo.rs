@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use std::io::{self, Write};
 
-use crate::config::AppConfig;
+use crate::config::{AppConfig, AuditConfig};
 use crate::provider::{
     AuditFinding, AuditPolicy, BlueprintRequest, ProviderFactory, RepoSummary, RepoVisibility,
 };
@@ -44,7 +44,7 @@ pub struct SyncReposCommand {
     #[arg(long, default_value = ".github")]
     pub source: String,
 
-    /// Sync files from the blueprint source repository instead of local files.
+    /// Compare blueprint workflow files and README markers instead of local files.
     #[arg(long, default_value_t = false)]
     pub from_blueprint: bool,
 
@@ -78,6 +78,15 @@ pub struct BlueprintRepoCommand {
     #[arg(long, default_value_t = false)]
     pub private: bool,
 }
+
+const ORG_LOCATION_PLACEHOLDER: &str = "City, Country";
+const ORG_GITHUB_BADGE_LINE: &str = "[![GitHub](https://img.shields.io/badge/--181717?logo=github&logoColor=ffffff)](https://github.com/)";
+const ORG_PROFILE_LINE: &str = "[brown9804](https://github.com/brown9804)";
+const ORG_LAST_UPDATED_PLACEHOLDER: &str = "Last updated: YYYY-MM-DD";
+const ORG_SEPARATOR_LINE: &str = "----------";
+const ORG_BADGE_START_MARKER: &str = "<!-- START BADGE -->";
+const ORG_BADGE_END_MARKER: &str = "<!-- END BADGE -->";
+const ORG_BADGE_BLOCK: &str = "<!-- START BADGE -->\n<div align=\"center\">\n  <img src=\"https://img.shields.io/badge/Total%20views-0-limegreen\" alt=\"Total views\">\n  <p>Refresh Date: YYYY-MM-DD</p>\n</div>\n<!-- END BADGE -->";
 
 impl RepoCommand {
     pub async fn run(&self, config_path: &str) -> Result<()> {
@@ -123,39 +132,6 @@ impl RepoCommand {
                     || command.blueprint_repo.is_some()
                     || !command.blueprint_path.is_empty();
 
-                let files = if use_blueprint {
-                    let blueprint = resolve_blueprint_source(&config, command)?;
-                    let (owner, repo) = parse_repo_slug(&blueprint.repo)?;
-                    let files = provider
-                        .fetch_repository_files(
-                            &owner,
-                            &repo,
-                            &blueprint.branch,
-                            &blueprint.paths,
-                        )
-                        .await?;
-                    if files.is_empty() {
-                        println!("No files found in blueprint repo '{}'.", blueprint.repo);
-                        return Ok(());
-                    }
-                    files
-                } else {
-                    let source_path = std::path::Path::new(&command.source);
-                    if !source_path.exists() {
-                        anyhow::bail!(
-                            "sync source directory '{}' does not exist",
-                            command.source
-                        );
-                    }
-
-                    let files = collect_sync_files(source_path)?;
-                    if files.is_empty() {
-                        println!("No files found in '{}'.", command.source);
-                        return Ok(());
-                    }
-                    files
-                };
-
                 let repos = provider.list_repositories(&config.organization).await?;
                 let repos = scope_to_config(repos, &config.scoped_repos);
                 let repos_to_sync: Vec<_> = if let Some(template_name) = &command.template {
@@ -181,60 +157,23 @@ impl RepoCommand {
                     repos
                 };
 
-                println!(
-                    "Syncing {} file(s) to {} repositories...",
-                    files.len(),
-                    repos_to_sync.len()
-                );
-
-                let commit_msg = if use_blueprint {
-                    let repo_name = command
-                        .blueprint_repo
-                        .as_deref()
-                        .or_else(|| config.blueprint.as_ref().map(|b| b.repo.as_str()))
-                        .unwrap_or("blueprint");
-                    format!(
-                        "chore: sync files from blueprint repo ({repo_name})"
-                    )
-                } else {
-                    format!(
-                        "chore: sync files from devopster (source: {})",
-                        command.source
-                    )
-                };
-                let mut sync_count = 0usize;
-                let mut error_count = 0usize;
-
-                for repo in &repos_to_sync {
-                    for (relative_path, file_content) in &files {
-                        match provider
-                            .push_file(
-                                &config.organization,
-                                &repo.name,
-                                relative_path,
-                                file_content,
-                                &commit_msg,
-                            )
-                            .await
-                        {
-                            Ok(()) => {
-                                sync_count += 1;
-                                println!("  synced '{}' -> '{}'", relative_path, repo.name);
-                            }
-                            Err(err) => {
-                                error_count += 1;
-                                eprintln!(
-                                    "  error syncing '{}' to '{}': {err:#}",
-                                    relative_path, repo.name
-                                );
-                            }
-                        }
-                    }
+                if repos_to_sync.is_empty() {
+                    println!("No repositories matched the configured sync scope.");
+                    return Ok(());
                 }
 
-                println!(
-                    "Sync complete: {sync_count} file(s) synced, {error_count} error(s)."
-                );
+                if use_blueprint {
+                    let blueprint = resolve_blueprint_source(&config, command)?;
+                    sync_blueprint_requirements(
+                        provider.as_ref(),
+                        &config,
+                        &repos_to_sync,
+                        &blueprint,
+                    )
+                    .await?;
+                } else {
+                    sync_local_files(provider.as_ref(), &config, &repos_to_sync, command).await?;
+                }
             }
             RepoAction::Blueprint(command) => {
                 let template = config
@@ -368,6 +307,422 @@ fn parse_repo_slug(input: &str) -> Result<(String, String)> {
     Ok((owner.to_string(), repo.to_string()))
 }
 
+async fn sync_local_files(
+    provider: &dyn crate::provider::Provider,
+    config: &AppConfig,
+    repos_to_sync: &[RepoSummary],
+    command: &SyncReposCommand,
+) -> Result<()> {
+    let source_path = std::path::Path::new(&command.source);
+    if !source_path.exists() {
+        anyhow::bail!("sync source directory '{}' does not exist", command.source);
+    }
+
+    let files = collect_sync_files(source_path)?;
+    if files.is_empty() {
+        println!("No files found in '{}'.", command.source);
+        return Ok(());
+    }
+
+    println!(
+        "Syncing {} file(s) to {} repositories...",
+        files.len(),
+        repos_to_sync.len()
+    );
+
+    let commit_msg = format!(
+        "chore: sync files from devopster (source: {})",
+        command.source
+    );
+    let mut sync_count = 0usize;
+    let mut error_count = 0usize;
+
+    for repo in repos_to_sync {
+        for (relative_path, file_content) in &files {
+            match provider
+                .push_file(
+                    &config.organization,
+                    &repo.name,
+                    relative_path,
+                    file_content,
+                    &commit_msg,
+                )
+                .await
+            {
+                Ok(()) => {
+                    sync_count += 1;
+                    println!("  synced '{}' -> '{}'", relative_path, repo.name);
+                }
+                Err(err) => {
+                    error_count += 1;
+                    eprintln!(
+                        "  error syncing '{}' to '{}': {err:#}",
+                        relative_path, repo.name
+                    );
+                }
+            }
+        }
+    }
+
+    println!(
+        "Sync complete: {sync_count} file(s) synced, {error_count} error(s)."
+    );
+    Ok(())
+}
+
+async fn sync_blueprint_requirements(
+    provider: &dyn crate::provider::Provider,
+    config: &AppConfig,
+    repos_to_sync: &[RepoSummary],
+    blueprint: &ResolvedBlueprintSource,
+) -> Result<()> {
+    let (owner, repo) = parse_repo_slug(&blueprint.repo)?;
+    let blueprint_files = provider
+        .fetch_repository_files(&owner, &repo, &blueprint.branch, &blueprint.paths)
+        .await
+        .with_context(|| {
+            format!(
+                "failed to read blueprint files from '{}' on branch '{}'",
+                blueprint.repo, blueprint.branch
+            )
+        })?;
+
+    let blueprint_workflows: std::collections::BTreeMap<String, Vec<u8>> = blueprint_files
+        .into_iter()
+        .filter(|(path, _)| path.starts_with(".github/workflows/"))
+        .collect();
+
+    if blueprint_workflows.is_empty() {
+        println!(
+            "No workflow files found in blueprint repo '{}' under the configured paths.",
+            blueprint.repo
+        );
+        return Ok(());
+    }
+
+    println!(
+        "Checking {} required workflow file(s) and org README markers across {} repositories...",
+        blueprint_workflows.len(),
+        repos_to_sync.len()
+    );
+
+    let inspect_paths = vec![".github/workflows".to_string(), "README.md".to_string()];
+    let mut sync_count = 0usize;
+    let mut skipped_count = 0usize;
+    let mut error_count = 0usize;
+
+    for repo in repos_to_sync {
+        let target_branch = repo
+            .default_branch
+            .as_deref()
+            .unwrap_or(config.default_branch.as_str());
+        let existing_files = provider
+            .fetch_repository_files(
+                &config.organization,
+                &repo.name,
+                target_branch,
+                &inspect_paths,
+            )
+            .await
+            .with_context(|| {
+                format!(
+                    "failed to inspect workflow files and README in '{}'",
+                    repo.name
+                )
+            })?;
+        let existing_files: std::collections::BTreeMap<String, Vec<u8>> =
+            existing_files.into_iter().collect();
+        let existing_workflows: std::collections::BTreeSet<String> = existing_files
+            .keys()
+            .filter(|path| path.starts_with(".github/workflows/"))
+            .cloned()
+            .collect();
+        let missing_workflows: Vec<_> = blueprint_workflows
+            .iter()
+            .filter(|(path, _)| !existing_workflows.contains(*path))
+            .collect();
+        let current_readme = existing_files
+            .get("README.md")
+            .map(|bytes| String::from_utf8_lossy(bytes).into_owned());
+        let missing_readme = detect_missing_readme_parts(current_readme.as_deref());
+
+        println!("\nRepository: {}", repo.name);
+
+        if missing_workflows.is_empty() && !missing_readme.any() {
+            println!("  OK: required blueprint workflows and README markers are present.");
+            continue;
+        }
+
+        if !missing_workflows.is_empty() {
+            let workflow_names = missing_workflows
+                .iter()
+                .map(|(path, _)| path.trim_start_matches(".github/workflows/"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            println!("  Missing workflow files: {workflow_names}");
+
+            if prompt_confirm(
+                "  Add missing workflow file(s) from the blueprint repo?",
+                true,
+            )? {
+                for (relative_path, file_content) in &missing_workflows {
+                    match provider
+                        .push_file(
+                            &config.organization,
+                            &repo.name,
+                            relative_path,
+                            file_content,
+                            "chore: add missing workflow from org blueprint",
+                        )
+                        .await
+                    {
+                        Ok(()) => {
+                            sync_count += 1;
+                            println!("  added '{}'", relative_path);
+                        }
+                        Err(err) => {
+                            error_count += 1;
+                            eprintln!(
+                                "  error syncing '{}' to '{}': {err:#}",
+                                relative_path, repo.name
+                            );
+                        }
+                    }
+                }
+            } else {
+                skipped_count += missing_workflows.len();
+                println!("  Skipped workflow updates.");
+            }
+        }
+
+        if missing_readme.any() {
+            println!(
+                "  README missing: {}",
+                missing_readme.labels().join(", ")
+            );
+
+            if prompt_confirm(
+                "  Update README with the org header and badge markers?",
+                true,
+            )? {
+                let updated_readme = apply_org_readme_standard(
+                    &repo.name,
+                    current_readme.as_deref(),
+                    missing_readme,
+                );
+                match provider
+                    .push_file(
+                        &config.organization,
+                        &repo.name,
+                        "README.md",
+                        updated_readme.as_bytes(),
+                        "docs: add org README standard markers",
+                    )
+                    .await
+                {
+                    Ok(()) => {
+                        sync_count += 1;
+                        println!("  updated 'README.md'");
+                    }
+                    Err(err) => {
+                        error_count += 1;
+                        eprintln!("  error updating 'README.md' in '{}': {err:#}", repo.name);
+                    }
+                }
+            } else {
+                skipped_count += 1;
+                println!("  Skipped README update.");
+            }
+        }
+    }
+
+    println!(
+        "Blueprint sync complete: {sync_count} file(s) synced, {skipped_count} item(s) skipped, {error_count} error(s)."
+    );
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+struct MissingReadmeParts {
+    location: bool,
+    github_badge: bool,
+    profile: bool,
+    last_updated: bool,
+    separator: bool,
+    badge_block: bool,
+}
+
+impl MissingReadmeParts {
+    fn any(self) -> bool {
+        self.location
+            || self.github_badge
+            || self.profile
+            || self.last_updated
+            || self.separator
+            || self.badge_block
+    }
+
+    fn labels(self) -> Vec<&'static str> {
+        let mut labels = Vec::new();
+        if self.location {
+            labels.push("location line");
+        }
+        if self.github_badge {
+            labels.push("GitHub badge line");
+        }
+        if self.profile {
+            labels.push("brown9804 profile line");
+        }
+        if self.last_updated {
+            labels.push("Last updated line");
+        }
+        if self.separator {
+            labels.push("header separator");
+        }
+        if self.badge_block {
+            labels.push("visitor badge block");
+        }
+        labels
+    }
+}
+
+fn detect_missing_readme_parts(readme: Option<&str>) -> MissingReadmeParts {
+    let text = readme.unwrap_or("");
+
+    MissingReadmeParts {
+        location: !text.lines().any(is_org_location_line),
+        github_badge: !text.contains(ORG_GITHUB_BADGE_LINE),
+        profile: !text.contains(ORG_PROFILE_LINE),
+        last_updated: !text.lines().any(is_last_updated_line),
+        separator: !text.lines().any(|line| line.trim() == ORG_SEPARATOR_LINE),
+        badge_block: !(text.contains(ORG_BADGE_START_MARKER)
+            && text.contains(ORG_BADGE_END_MARKER)),
+    }
+}
+
+fn apply_org_readme_standard(
+    repo_name: &str,
+    readme: Option<&str>,
+    missing: MissingReadmeParts,
+) -> String {
+    let existing = readme.unwrap_or("").trim_end();
+    let mut content = if existing.is_empty() {
+        format!("# {repo_name}")
+    } else {
+        existing.to_string()
+    };
+
+    let header_additions = build_org_header_additions(missing);
+    if !header_additions.is_empty() {
+        content = insert_after_main_title(&content, &header_additions, repo_name);
+    }
+
+    if missing.badge_block {
+        if !content.ends_with('\n') {
+            content.push('\n');
+        }
+        content.push('\n');
+        content.push_str(ORG_BADGE_BLOCK);
+    }
+
+    if !content.ends_with('\n') {
+        content.push('\n');
+    }
+
+    content
+}
+
+fn build_org_header_additions(missing: MissingReadmeParts) -> String {
+    let mut sections = Vec::new();
+    if missing.location {
+        sections.push(ORG_LOCATION_PLACEHOLDER.to_string());
+    }
+    if missing.github_badge {
+        sections.push(ORG_GITHUB_BADGE_LINE.to_string());
+    }
+    if missing.profile {
+        sections.push(ORG_PROFILE_LINE.to_string());
+    }
+    if missing.last_updated {
+        sections.push(ORG_LAST_UPDATED_PLACEHOLDER.to_string());
+    }
+    if missing.separator {
+        sections.push(ORG_SEPARATOR_LINE.to_string());
+    }
+    sections.join("\n\n")
+}
+
+fn insert_after_main_title(markdown: &str, additions: &str, repo_name: &str) -> String {
+    let content = markdown.trim_end();
+    if content.is_empty() {
+        return format!("# {repo_name}\n\n{}", additions.trim());
+    }
+
+    let lines: Vec<&str> = content.lines().collect();
+    if let Some(index) = lines
+        .iter()
+        .position(|line| line.trim_start().starts_with("# "))
+    {
+        let before = lines[..=index].join("\n");
+        let after = lines[index + 1..].join("\n");
+        if after.trim().is_empty() {
+            format!("{}\n\n{}", before.trim_end(), additions.trim())
+        } else {
+            format!(
+                "{}\n\n{}\n\n{}",
+                before.trim_end(),
+                additions.trim(),
+                after.trim_start()
+            )
+        }
+    } else {
+        format!("# {repo_name}\n\n{}\n\n{}", additions.trim(), content)
+    }
+}
+
+fn is_org_location_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty()
+        || trimmed.starts_with('#')
+        || trimmed.starts_with('>')
+        || trimmed.starts_with('[')
+        || trimmed.starts_with('<')
+        || trimmed.starts_with("Last updated:")
+        || trimmed == ORG_SEPARATOR_LINE
+    {
+        return false;
+    }
+
+    let parts: Vec<_> = trimmed.split(',').map(|part| part.trim()).collect();
+    parts.len() == 2
+        && parts.iter().all(|part| {
+            !part.is_empty()
+                && part.chars().all(|c| {
+                    c.is_ascii_alphanumeric()
+                        || matches!(c, ' ' | '-' | '.' | '\'' | '&')
+                })
+        })
+}
+
+fn is_last_updated_line(line: &str) -> bool {
+    let Some(value) = line.trim().strip_prefix("Last updated: ") else {
+        return false;
+    };
+
+    value == "YYYY-MM-DD" || is_iso_date(value)
+}
+
+fn is_iso_date(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 10
+        && bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 4 | 7) || byte.is_ascii_digit())
+}
+
 async fn fix_repos(provider: &dyn crate::provider::Provider, config: &AppConfig) -> Result<()> {
     if config.scoped_repos.is_empty() {
         let proceed = prompt_confirm(
@@ -388,22 +743,37 @@ async fn fix_repos(provider: &dyn crate::provider::Provider, config: &AppConfig)
         return Ok(());
     }
 
-    let supports_metadata = matches!(repos[0].provider, "github" | "gitlab");
+    let total_repos = repos.len();
+    let repos: Vec<_> = repos
+        .into_iter()
+        .map(|repo| {
+            let missing = missing_metadata(&repo, &config.audit);
+            (repo, missing)
+        })
+        .filter(|(_, missing)| missing.any())
+        .collect();
+
+    if repos.is_empty() {
+        println!(
+            "No repositories in scope are missing description, topics, or license metadata."
+        );
+        println!("Nothing to fix.");
+        return Ok(());
+    }
+
+    let supports_metadata = matches!(repos[0].0.provider, "github" | "gitlab");
     let supports_push = supports_metadata;
 
-    println!("\nFixing {} repository(ies)...", repos.len());
+    println!(
+        "\nFixing {} of {} repository(ies)...",
+        repos.len(),
+        total_repos
+    );
 
-    for repo in repos {
-        let missing_description = config.audit.require_description
-            && repo.description.trim().is_empty();
-        let missing_topics = config.audit.require_topics
-            && repo.topics.len() < config.audit.min_topics;
-        let missing_license = config.audit.require_license
-            && is_license_missing(repo.license.as_deref());
-
-        if !(missing_description || missing_topics || missing_license) {
-            continue;
-        }
+    for (repo, missing) in repos {
+        let missing_description = missing.description;
+        let missing_topics = missing.topics;
+        let missing_license = missing.license;
 
         println!("\nRepository: {}", repo.name);
         if missing_description {
@@ -552,6 +922,25 @@ async fn fix_repos(provider: &dyn crate::provider::Provider, config: &AppConfig)
     }
 
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+struct MissingMetadata {
+    description: bool,
+    topics: bool,
+    license: bool,
+}
+
+impl MissingMetadata {
+    fn any(self) -> bool { self.description || self.topics || self.license }
+}
+
+fn missing_metadata(repo: &RepoSummary, audit: &AuditConfig) -> MissingMetadata {
+    MissingMetadata {
+        description: audit.require_description && repo.description.trim().is_empty(),
+        topics: audit.require_topics && repo.topics.len() < audit.min_topics,
+        license: audit.require_license && is_license_missing(repo.license.as_deref()),
+    }
 }
 
 fn filter_repos(repos: Vec<RepoSummary>, topic: Option<&str>) -> Vec<RepoSummary> {
@@ -742,3 +1131,92 @@ const APACHE_2_0_LICENSE: &str = "Apache License\nVersion 2.0, January 2004\nhtt
 const BSD_3_CLAUSE_LICENSE: &str = "BSD 3-Clause License\n\nCopyright (c) YEAR\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n1. Redistributions of source code must retain the above copyright notice, this\n   list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright notice,\n   this list of conditions and the following disclaimer in the documentation\n   and/or other materials provided with the distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived from\n   this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n";
 
 const GPL_3_0_LICENSE: &str = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n\nThis program is free software: you can redistribute it and/or modify\nit under the terms of the GNU General Public License as published by\nthe Free Software Foundation, either version 3 of the License, or\n(at your option) any later version.\n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License\nalong with this program.  If not, see <https://www.gnu.org/licenses/>.\n";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_repo() -> RepoSummary {
+        RepoSummary {
+            name: "sample".to_string(),
+            full_name: None,
+            description: String::new(),
+            topics: Vec::new(),
+            license: None,
+            default_branch: Some("main".to_string()),
+            web_url: None,
+            provider: "github",
+            language: None,
+            archived: false,
+            is_private: false,
+            stargazers_count: None,
+            forks_count: None,
+            updated_at: None,
+        }
+    }
+
+    #[test]
+    fn missing_metadata_respects_enabled_audit_checks() {
+        let audit = AuditConfig {
+            require_description: true,
+            require_topics: true,
+            min_topics: 2,
+            require_license: true,
+            require_default_branch: true,
+        };
+
+        let missing = missing_metadata(&sample_repo(), &audit);
+
+        assert!(missing.description);
+        assert!(missing.topics);
+        assert!(missing.license);
+        assert!(missing.any());
+    }
+
+    #[test]
+    fn missing_metadata_ignores_disabled_checks() {
+        let audit = AuditConfig {
+            require_description: false,
+            require_topics: false,
+            min_topics: 3,
+            require_license: false,
+            require_default_branch: true,
+        };
+
+        let missing = missing_metadata(&sample_repo(), &audit);
+
+        assert!(!missing.description);
+        assert!(!missing.topics);
+        assert!(!missing.license);
+        assert!(!missing.any());
+    }
+
+    #[test]
+    fn detect_missing_readme_parts_accepts_org_standard_lines() {
+        let readme = format!(
+            "# demo\n\nAtlanta, USA\n\n{ORG_GITHUB_BADGE_LINE}\n{ORG_PROFILE_LINE}\n\nLast updated: 2026-04-02\n\n{ORG_SEPARATOR_LINE}\n\nBody\n\n{ORG_BADGE_BLOCK}\n"
+        );
+
+        let missing = detect_missing_readme_parts(Some(&readme));
+
+        assert!(!missing.any());
+    }
+
+    #[test]
+    fn apply_org_readme_standard_inserts_missing_markers() {
+        let original = "# demo\n\n## About\nHello\n";
+        let updated = apply_org_readme_standard(
+            "demo",
+            Some(original),
+            detect_missing_readme_parts(Some(original)),
+        );
+
+        assert!(updated.contains(ORG_LOCATION_PLACEHOLDER));
+        assert!(updated.contains(ORG_GITHUB_BADGE_LINE));
+        assert!(updated.contains(ORG_PROFILE_LINE));
+        assert!(updated.contains(ORG_LAST_UPDATED_PLACEHOLDER));
+        assert!(updated.contains(ORG_SEPARATOR_LINE));
+        assert!(updated.contains(ORG_BADGE_START_MARKER));
+        assert!(updated.contains("## About\nHello"));
+    }
+}

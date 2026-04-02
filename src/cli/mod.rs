@@ -34,7 +34,7 @@ Commands:
 {tab}repo fix                      Prompt to fix missing metadata
 {tab}repo blueprint                Create a new repository from a blueprint
 {tab}repo sync                     Push files from .github/ to all repositories
-{tab}repo sync --from-blueprint    Sync files from the blueprint repo
+{tab}repo sync --from-blueprint    Prompt to add missing blueprint workflows and README markers
 {tab}catalog generate              Export a catalog.json of all repositories
 {tab}topics align                  Add missing template topics to repositories
 {tab}stats                         Print org-wide metadata coverage and compliance

@@ -84,9 +84,9 @@ devopster repo list
 | `devopster login` | - `<github\|azure-devops\|gitlab>`<br/>- `all`<br/>- `status`<br/>- `logout <provider>` | - Sign in to that provider via browser (uses `gh`, `az`, or `glab` CLI)<br/>- Sign in to all three providers sequentially<br/>- Show authentication status for all providers<br/>- Remove stored credentials for a provider |
 | `devopster repo list` | - `--topic <topic>` | - List all repositories in the configured organization<br/>- Filter repositories by topic |
 | `devopster repo audit` | N/A | - Audit repos for missing description, topics, license, and default branch |
-| `devopster repo fix` | N/A | - Prompt for missing description, topics, and license in scoped repos |
+| `devopster repo fix` | N/A | - Prompt for missing description, topics, and license in scoped repos that actually need fixes |
 | `devopster repo blueprint` | - `--name <name> --template <template>` | - Create a new repository from a template defined in config |
-| `devopster repo sync` | - `--from-blueprint` | - Push files from `.github/` to all repositories<br/>- Sync pipeline and policy files from the blueprint repo |
+| `devopster repo sync` | - `--from-blueprint` | - Push files from `.github/` to all repositories<br/>- Compare required workflow files from the blueprint repo, prompt to add any missing ones, and prompt to add the org README header and badge markers |
 | `devopster catalog generate` | N/A | - Export a JSON catalog of all repositories |
 | `devopster topics align` | N/A | - Add missing template topics to every matching repository |
 | `devopster stats` | - `--scope-missing` | - Print org summary: config, coverage (description/topics/license/branch), compliance, and top topics<br/>- Update scoped repos to the non-compliant list |
