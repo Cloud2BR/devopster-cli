@@ -1,4 +1,4 @@
-# devopster-cli
+# DevOpster (CLI + GUI)
 
 Costa Rica / USA
 
