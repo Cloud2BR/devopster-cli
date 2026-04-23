@@ -108,7 +108,7 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
 docker info *> $null
 if ($LASTEXITCODE -ne 0) {
     Write-Warn "Docker is installed but the daemon is not reachable."
-    Write-Warn "Start Docker Desktop, then re-run: make setup"
+    Write-Warn "Start Docker Desktop, then re-run this setup script."
     exit 1
 }
 

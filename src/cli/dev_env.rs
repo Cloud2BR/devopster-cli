@@ -1,10 +1,7 @@
-use std::env;
-use std::io::IsTerminal;
-use std::process::Command;
-
-use anyhow::{bail, Context, Result};
+use anyhow::Result;
 use clap::Args;
 
+use crate::cli::container_runtime::{build_dev_image, ensure_docker_ready, run_in_dev_container};
 use crate::ui;
 
 #[derive(Debug, Args)]
@@ -26,84 +23,25 @@ impl DevEnvCommand {
     pub async fn run(&self) -> Result<()> {
         ui::header("devopster local developer environment");
 
+        ui::section("Check Docker");
         ensure_docker_ready()?;
+        ui::success("Docker is available and running.");
 
         if !self.no_build {
             ui::section("Build container image");
-            run_docker(
-                Command::new("docker").args(["build", "--target", "dev", "-t", &self.image, "."]),
-                "docker build failed",
-            )?;
+            build_dev_image(&self.image)?;
         }
 
         ui::section("Start local container");
-        let current_dir = env::current_dir().context("failed to read current directory")?;
-        let current_dir = current_dir.to_string_lossy().to_string();
-        let home = env::var("HOME")
-            .or_else(|_| env::var("USERPROFILE"))
-            .context("could not resolve HOME/USERPROFILE for config mount")?;
-        let host_config_dir = format!("{home}/.config/devopster");
-
         let in_container_cmd = if self.no_onboarding {
-            "make bootstrap"
+            "cargo fetch && cargo install --path . --locked --force && cargo test"
         } else {
-            "make bootstrap && devopster setup"
+            "cargo fetch && cargo install --path . --locked --force && cargo test && devopster setup"
         };
 
-        let mut run = Command::new("docker");
-        run.arg("run").arg("--rm");
-        if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
-            run.arg("-it");
-        }
-        run.args([
-            "-v",
-            &format!("{host_config_dir}:/root/.config/devopster"),
-            "-v",
-            &format!("{current_dir}:/app"),
-            "-w",
-            "/app",
-            &self.image,
-            "bash",
-            "-lc",
-            in_container_cmd,
-        ]);
-
-        run_docker(run, "docker run failed")?;
+        run_in_dev_container(&self.image, in_container_cmd, true)?;
         ui::success("Local containerized developer environment completed.");
 
         Ok(())
     }
-}
-
-fn ensure_docker_ready() -> Result<()> {
-    ui::section("Check Docker");
-
-    let docker_ok = Command::new("docker")
-        .arg("--version")
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
-    if !docker_ok {
-        bail!("Docker is required. Install and start Docker Desktop/Engine, then retry.");
-    }
-
-    let daemon_ok = Command::new("docker")
-        .arg("info")
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
-    if !daemon_ok {
-        bail!("Docker is installed but daemon is not reachable. Start Docker and retry.");
-    }
-
-    ui::success("Docker is available and running.");
-    Ok(())
-}
-
-fn run_docker(mut cmd: Command, message: &str) -> Result<()> {
-    let status = cmd.status().with_context(|| message.to_string())?;
-    if !status.success() {
-        bail!("{message}");
-    }
-    Ok(())
 }

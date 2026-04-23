@@ -1,0 +1,93 @@
+name: Use Visitor Counter Logic
+
+on:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '15 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-visitor-count:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run visitor counter logic (updates markdown badges, docs/index.html, and metrics.json)
+        run: node .github/scripts/update_repo_views_counter.js
+        env:
+          TRAFFIC_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
+          REPO: ${{ github.repository }}
+
+      - name: Configure Git author
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # Commit and push for PR events (stash → rebase → pop to avoid conflicts)
+      - name: Commit and push changes (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
+          HAS_CHANGES=false
+          if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+            HAS_CHANGES=true
+            git stash push --include-untracked --message visitor-counter
+          fi
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+          if [ "$HAS_CHANGES" = true ]; then
+            git stash pop
+          fi
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "docs: update visitor count"
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+
+      # Commit and push for schedule/workflow_dispatch events
+      - name: Commit and push changes (non-PR)
+        if: github.event_name != 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
+          HAS_CHANGES=false
+          if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+            HAS_CHANGES=true
+            git stash push --include-untracked --message visitor-counter
+          fi
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+          if [ "$HAS_CHANGES" = true ]; then
+            git stash pop
+          fi
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "docs: update visitor count"
+          git pull --rebase origin "$BRANCH"
+          git push origin HEAD:"$BRANCH"
+

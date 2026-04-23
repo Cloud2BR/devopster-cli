@@ -84,7 +84,6 @@ pub struct BlueprintRepoCommand {
 
 const ORG_DEFAULT_LOCATION: &str = "Atlanta, USA";
 const ORG_GITHUB_BADGE_LINE: &str = "[![GitHub](https://img.shields.io/badge/--181717?logo=github&logoColor=ffffff)](https://github.com/)";
-const ORG_PROFILE_LINE: &str = "[brown9804](https://github.com/brown9804)";
 const ORG_SEPARATOR_LINE: &str = "----------";
 const ORG_BADGE_START_MARKER: &str = "<!-- START BADGE -->";
 const ORG_BADGE_END_MARKER: &str = "<!-- END BADGE -->";
@@ -449,7 +448,9 @@ async fn sync_blueprint_requirements(
         let current_readme = existing_files
             .get("README.md")
             .map(|bytes| String::from_utf8_lossy(bytes).into_owned());
-        let missing_readme = detect_missing_readme_parts(current_readme.as_deref());
+        let expected_profile_line = org_profile_line(&config.organization);
+        let missing_readme =
+            detect_missing_readme_parts(current_readme.as_deref(), &expected_profile_line);
 
         ui::section(&format!("Repository: {}", repo.name));
 
@@ -517,6 +518,7 @@ async fn sync_blueprint_requirements(
                     current_readme.as_deref(),
                     missing_readme,
                     &repair_values,
+                    &expected_profile_line,
                 );
                 match provider
                     .push_file(
@@ -582,7 +584,7 @@ impl MissingReadmeParts {
             labels.push("GitHub badge line");
         }
         if self.profile {
-            labels.push("brown9804 profile line");
+            labels.push("organization profile line");
         }
         if self.last_updated {
             labels.push("Last updated line");
@@ -604,13 +606,13 @@ struct ReadmeRepairValues {
     badge_block: String,
 }
 
-fn detect_missing_readme_parts(readme: Option<&str>) -> MissingReadmeParts {
+fn detect_missing_readme_parts(readme: Option<&str>, expected_profile_line: &str) -> MissingReadmeParts {
     let text = readme.unwrap_or("");
 
     MissingReadmeParts {
         location: !text.lines().any(is_org_location_line),
         github_badge: !text.contains(ORG_GITHUB_BADGE_LINE),
-        profile: !text.contains(ORG_PROFILE_LINE),
+        profile: !text.contains(expected_profile_line),
         last_updated: !text.lines().any(is_last_updated_line),
         separator: !text.lines().any(|line| line.trim() == ORG_SEPARATOR_LINE),
         badge_block: !has_complete_badge_block(text),
@@ -651,6 +653,7 @@ fn apply_org_readme_standard(
     readme: Option<&str>,
     missing: MissingReadmeParts,
     values: &ReadmeRepairValues,
+    expected_profile_line: &str,
 ) -> String {
     let existing = readme.unwrap_or("").trim_end();
     let mut content = if existing.is_empty() {
@@ -659,7 +662,7 @@ fn apply_org_readme_standard(
         existing.to_string()
     };
 
-    let header_additions = build_org_header_additions(missing, values);
+    let header_additions = build_org_header_additions(missing, values, expected_profile_line);
     if !header_additions.is_empty() {
         content = insert_after_main_title(&content, &header_additions, repo_name);
     }
@@ -675,7 +678,11 @@ fn apply_org_readme_standard(
     content
 }
 
-fn build_org_header_additions(missing: MissingReadmeParts, values: &ReadmeRepairValues) -> String {
+fn build_org_header_additions(
+    missing: MissingReadmeParts,
+    values: &ReadmeRepairValues,
+    expected_profile_line: &str,
+) -> String {
     let mut sections = Vec::new();
     if missing.location {
         sections.push(values.location_line.clone());
@@ -684,7 +691,7 @@ fn build_org_header_additions(missing: MissingReadmeParts, values: &ReadmeRepair
         sections.push(ORG_GITHUB_BADGE_LINE.to_string());
     }
     if missing.profile {
-        sections.push(ORG_PROFILE_LINE.to_string());
+        sections.push(expected_profile_line.to_string());
     }
     if missing.last_updated {
         sections.push(values.last_updated_line.clone());
@@ -693,6 +700,11 @@ fn build_org_header_additions(missing: MissingReadmeParts, values: &ReadmeRepair
         sections.push(ORG_SEPARATOR_LINE.to_string());
     }
     sections.join("\n\n")
+}
+
+fn org_profile_line(organization: &str) -> String {
+    let org = organization.trim();
+    format!("[{org}](https://github.com/{org})")
 }
 
 fn upsert_badge_block(markdown: &str, badge_block: &str) -> String {
@@ -1370,15 +1382,16 @@ mod tests {
 
     #[test]
     fn detect_missing_readme_parts_accepts_org_standard_lines() {
+        let profile_line = org_profile_line("example-org");
         let readme = format!(
-            "# demo\n\nAtlanta, USA\n\n{ORG_GITHUB_BADGE_LINE}\n{ORG_PROFILE_LINE}\n\nLast updated: 2026-04-02\n\n{ORG_SEPARATOR_LINE}\n\nBody\n\n{}\n",
+            "# demo\n\nAtlanta, USA\n\n{ORG_GITHUB_BADGE_LINE}\n{profile_line}\n\nLast updated: 2026-04-02\n\n{ORG_SEPARATOR_LINE}\n\nBody\n\n{}\n",
             build_badge_block(
                 "https://img.shields.io/badge/Total%20views-1580-limegreen",
                 "2026-04-02"
             )
         );
 
-        let missing = detect_missing_readme_parts(Some(&readme));
+        let missing = detect_missing_readme_parts(Some(&readme), &profile_line);
 
         assert!(!missing.any());
     }
@@ -1386,6 +1399,7 @@ mod tests {
     #[test]
     fn apply_org_readme_standard_inserts_missing_markers() {
         let original = "# demo\n\n## About\nHello\n";
+        let profile_line = org_profile_line("example-org");
         let values = ReadmeRepairValues {
             location_line: "Atlanta, USA".to_string(),
             last_updated_line: "Last updated: 2026-04-02".to_string(),
@@ -1397,13 +1411,14 @@ mod tests {
         let updated = apply_org_readme_standard(
             "demo",
             Some(original),
-            detect_missing_readme_parts(Some(original)),
+            detect_missing_readme_parts(Some(original), &profile_line),
             &values,
+            &profile_line,
         );
 
         assert!(updated.contains("Atlanta, USA"));
         assert!(updated.contains(ORG_GITHUB_BADGE_LINE));
-        assert!(updated.contains(ORG_PROFILE_LINE));
+        assert!(updated.contains(&profile_line));
         assert!(updated.contains("Last updated: 2026-04-02"));
         assert!(updated.contains(ORG_SEPARATOR_LINE));
         assert!(updated.contains(ORG_BADGE_START_MARKER));
@@ -1412,11 +1427,12 @@ mod tests {
 
     #[test]
     fn detect_missing_readme_parts_flags_incomplete_badge_block() {
+        let profile_line = org_profile_line("example-org");
         let readme = format!(
-            "# demo\n\nAtlanta, USA\n\n{ORG_GITHUB_BADGE_LINE}\n{ORG_PROFILE_LINE}\n\nLast updated: 2026-04-02\n\n{ORG_SEPARATOR_LINE}\n\n{ORG_BADGE_START_MARKER}\n<div align=\"center\">\n</div>\n{ORG_BADGE_END_MARKER}\n"
+            "# demo\n\nAtlanta, USA\n\n{ORG_GITHUB_BADGE_LINE}\n{profile_line}\n\nLast updated: 2026-04-02\n\n{ORG_SEPARATOR_LINE}\n\n{ORG_BADGE_START_MARKER}\n<div align=\"center\">\n</div>\n{ORG_BADGE_END_MARKER}\n"
         );
 
-        let missing = detect_missing_readme_parts(Some(&readme));
+        let missing = detect_missing_readme_parts(Some(&readme), &profile_line);
 
         assert!(missing.badge_block);
     }

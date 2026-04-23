@@ -78,14 +78,14 @@ info "devopster setup"
 # ── Validate Docker availability (host dependency) ───────────────────────────
 if ! command -v docker > /dev/null 2>&1; then
     warn "Docker is required but not installed."
-    warn "Install Docker Desktop/Engine, start it, then re-run: make setup"
+    warn "Install Docker Desktop/Engine, start it, then re-run this setup script."
     warn "Install docs: https://docs.docker.com/get-docker/"
     exit 1
 fi
 
 if ! docker info > /dev/null 2>&1; then
     warn "Docker is installed but the daemon is not reachable."
-    warn "Start Docker Desktop/Engine, then re-run: make setup"
+    warn "Start Docker Desktop/Engine, then re-run this setup script."
     exit 1
 fi
 
@@ -93,7 +93,7 @@ success "Docker ready: $(docker --version)"
 
 # ── Build image ──────────────────────────────────────────────────────────────
 info "Building devopster container image..."
-make container-build
+docker build --target dev -t devopster-cli-dev .
 
 # ── Host browser proxy ───────────────────────────────────────────────────────
 # devopster writes a URL to .devopster_open_url (inside the mounted /app dir)
