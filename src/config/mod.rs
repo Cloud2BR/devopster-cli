@@ -10,6 +10,10 @@ use url::Url;
 pub struct AppConfig {
     pub provider: ProviderKind,
     pub organization: String,
+    /// Optional multi-provider inventory targets. When empty, commands fall
+    /// back to the single top-level `provider` + `organization` pair.
+    #[serde(default)]
+    pub providers: Vec<ProviderTargetConfig>,
     #[serde(default = "default_branch")]
     pub default_branch: String,
     pub github: Option<GitHubConfig>,
@@ -133,6 +137,22 @@ pub struct TemplateConfig {
     pub topics: Vec<String>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProviderTargetConfig {
+    pub provider: ProviderKind,
+    pub organization: String,
+    /// Optional Azure DevOps project override for this target.
+    #[serde(default)]
+    pub project: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProviderTarget {
+    pub provider: ProviderKind,
+    pub organization: String,
+    pub project: Option<String>,
+}
+
 impl AppConfig {
     pub fn load(path: &str) -> Result<Self> {
         let content = fs::read_to_string(path)
@@ -140,6 +160,25 @@ impl AppConfig {
 
         serde_yaml::from_str(&content)
             .with_context(|| format!("failed to parse YAML config at {path}"))
+    }
+
+    pub fn provider_targets(&self) -> Vec<ProviderTarget> {
+        if self.providers.is_empty() {
+            return vec![ProviderTarget {
+                provider: self.provider.clone(),
+                organization: self.organization.clone(),
+                project: None,
+            }];
+        }
+
+        self.providers
+            .iter()
+            .map(|target| ProviderTarget {
+                provider: target.provider.clone(),
+                organization: target.organization.clone(),
+                project: target.project.clone(),
+            })
+            .collect()
     }
 }
 
@@ -221,5 +260,39 @@ mod tests {
         );
         let config: AppConfig = serde_yaml::from_str(&yaml).unwrap();
         assert!(config.templates.is_empty());
+    }
+
+    #[test]
+    fn parses_multi_provider_targets() {
+        let yaml = "
+provider: github
+organization: fallback-org
+providers:
+  - provider: github
+    organization: org-a
+  - provider: gitlab
+    organization: group-b
+  - provider: azure_devops
+    organization: org-c
+    project: platform
+catalog:
+  output_path: out/catalog.json
+github:
+  api_url: https://api.github.com
+  token_env: GITHUB_TOKEN
+azure_devops:
+  organization_url: https://dev.azure.com/myorg
+  project: default-project
+  token_env: AZDO_TOKEN
+gitlab:
+  api_url: https://gitlab.com/api/v4
+  token_env: GITLAB_TOKEN
+";
+
+        let config: AppConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.providers.len(), 3);
+        assert_eq!(config.providers[0].organization, "org-a");
+        assert!(matches!(config.providers[1].provider, ProviderKind::GitLab));
+        assert_eq!(config.providers[2].project.as_deref(), Some("platform"));
     }
 }

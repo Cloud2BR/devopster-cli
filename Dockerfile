@@ -44,7 +44,7 @@ RUN cargo fetch
 
 # ── Build & install the binary ────────────────────────────────────────────────
 # `cargo install` places `devopster` in ~/.cargo/bin which is on PATH in the
-# official Rust image, so `devopster <cmd>` works directly after `make setup`.
+# official Rust image, so `devopster <cmd>` works directly after `devopster dev-env`.
 RUN cargo install --path . --locked
 
 FROM base AS test

@@ -150,4 +150,21 @@ impl ProviderFactory {
             ProviderKind::GitLab => Ok(Box::new(gitlab::GitLabProvider::from_config(config)?)),
         }
     }
+
+    pub fn from_target(
+        config: &AppConfig,
+        provider: &ProviderKind,
+        project_override: Option<&str>,
+    ) -> Result<Box<dyn Provider>> {
+        match provider {
+            ProviderKind::GitHub => Ok(Box::new(github::GitHubProvider::from_config(config)?)),
+            ProviderKind::AzureDevOps => Ok(Box::new(
+                azure_devops::AzureDevOpsProvider::from_config_with_project(
+                    config,
+                    project_override,
+                )?,
+            )),
+            ProviderKind::GitLab => Ok(Box::new(gitlab::GitLabProvider::from_config(config)?)),
+        }
+    }
 }

@@ -96,21 +96,20 @@ function Start-BrowserWatcher {
 
 Write-Info "devopster setup (Windows)"
 
-# ── Install Docker Desktop if missing ────────────────────────────────────────
+# ── Validate Docker availability (host dependency) ───────────────────────────
 if (Get-Command docker -ErrorAction SilentlyContinue) {
-    Write-Success "Docker already installed: $(docker --version)"
+    Write-Success "Docker detected: $(docker --version)"
 } else {
-    Write-Info "Installing Docker Desktop via winget..."
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        winget install -e --id Docker.DockerDesktop
-    } else {
-        Write-Warn "winget not found. Please install Docker Desktop manually:"
-        Write-Host "    https://docs.docker.com/desktop/install/windows-install/"
-        exit 1
-    }
-    Write-Success "Docker Desktop installed."
-    Write-Warn "Please start Docker Desktop, then re-run: make setup"
-    exit 0
+    Write-Warn "Docker is required but not installed."
+    Write-Host "    Install docs: https://docs.docker.com/desktop/install/windows-install/"
+    exit 1
+}
+
+docker info *> $null
+if ($LASTEXITCODE -ne 0) {
+    Write-Warn "Docker is installed but the daemon is not reachable."
+    Write-Warn "Start Docker Desktop, then re-run this setup script."
+    exit 1
 }
 
 # ── Build image and open shell ────────────────────────────────────────────────

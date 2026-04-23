@@ -22,6 +22,10 @@ pub struct AzureDevOpsProvider {
 
 impl AzureDevOpsProvider {
     pub fn from_config(config: &AppConfig) -> Result<Self> {
+        Self::from_config_with_project(config, None)
+    }
+
+    pub fn from_config_with_project(config: &AppConfig, project_override: Option<&str>) -> Result<Self> {
         let azure = config
             .azure_devops
             .as_ref()
@@ -30,7 +34,9 @@ impl AzureDevOpsProvider {
         Ok(Self {
             api_url: azure.organization_url.clone(),
             client: build_client(azure)?,
-            project: azure.project.clone(),
+            project: project_override
+                .map(|project| project.to_string())
+                .unwrap_or_else(|| azure.project.clone()),
         })
     }
 }
