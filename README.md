@@ -40,31 +40,31 @@ Last updated: 2026-03-25
 
 ## Container-First Workflow
 
-> This project is designed to run inside a container. **The only required tool on your host machine is `make`**, everything else including Docker is installed automatically by `make setup`.
+> This project is designed to run inside a container. Host-level development dependencies are intentionally minimal: install Docker once on the host, then run everything else in containers.
 
-### What `make setup` installs
+### What `make setup` does
 
 | Tool | Where | How |
 |---|---|---|
-| Homebrew | macOS only, if missing | Official install script |
-| Docker Desktop | macOS | `brew install --cask docker` |
-| Docker Engine | Debian/Ubuntu | Official apt repository |
+| Docker availability check | Host | Verifies Docker CLI + daemon |
 | `gh`, `az`, `glab`, Rust, `devopster` | Inside the container | Dockerfile |
 
-> On macOS, after Docker Desktop is installed for the first time you need to start it from Applications, then re-run `make setup`.
+> `make setup` does not install host package managers or Docker for you; it validates Docker and then starts the containerized runtime.
+
+> If you want zero local installs, run this repo in GitHub Codespaces (or another cloud dev container runtime) so Docker and tooling are provided remotely.
 
 ### VS Code Dev Container
 
 1. Clone the repository.
 2. Open it in VS Code.
 3. Reopen the folder in the Dev Container.
-4. The post-create step runs `make setup` automatically.
+4. The post-create step installs `devopster` inside the dev container.
 
 ### Local Commands
 
 ```bash
-# First time on a new machine -- installs Docker if needed, builds the image,
-# and drops you into the container shell where devopster is ready to use:
+# First time on a new machine -- with Docker already installed/running,
+# this builds the image and drops you into the container shell:
 make setup
 
 # Inside the container:
@@ -75,7 +75,7 @@ devopster
 
 ## Commands Overview
 
-> After `make setup`, run `devopster` with no subcommand to open the interactive launcher. For most users, the only top-level commands you need to remember are `login` and `init`.
+> After `make setup`, run `devopster` with no subcommand to open the interactive launcher. For most users, the only top-level command you need to remember is `setup`.
 
 ### Interactive launcher
 
@@ -94,10 +94,11 @@ The launcher lets you choose actions with the keyboard for:
 
 ### Primary direct commands
 
-These are the two direct commands most people need:
+These are the direct commands most people need:
 
 | Command | Options / Variants | Purpose |
 |---|---|---|
+| `devopster setup` | - `--login-all`<br/>- `--no-login`<br/>- `--output <path>` | - Run one-command onboarding (guided login + guided config)<br/>- Sign in to all providers first, then continue config setup<br/>- Skip provider sign-in and only run config setup<br/>- Write config to a custom path |
 | `devopster init` | - `--no-login` | - Create `devopster-config.yaml` and sign in to a provider<br/>- Create `devopster-config.yaml` only, skip the sign-in prompt |
 | `devopster login` | - `<github\|azure-devops\|gitlab>`<br/>- `all`<br/>- `status`<br/>- `logout <provider>` | - Sign in to that provider via browser (uses `gh`, `az`, or `glab` CLI)<br/>- Sign in to all three providers sequentially<br/>- Show authentication status for all providers<br/>- Remove stored credentials for a provider |
 
@@ -124,6 +125,9 @@ make setup
 
 # 2. open the launcher
 devopster
+
+# 2b. or run one-command onboarding directly
+devopster setup
 
 # 3. or run any command directly
 devopster repo list

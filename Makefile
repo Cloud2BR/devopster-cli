@@ -5,7 +5,7 @@
 
 OS := $(shell uname -s 2>/dev/null || echo Windows)
 
-## setup: Full automated setup -- installs Docker if needed, builds the image, opens a shell
+## setup: Validate Docker, build the image, and open a container shell
 setup:
 ifeq ($(OS),Darwin)
 	@echo "==> Detected macOS"
