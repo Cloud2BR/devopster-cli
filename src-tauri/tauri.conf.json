@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DevOpster",
+  "version": "0.1.0",
+  "identifier": "io.cloud2br.devopster",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "frontendDist": "../frontend",
+    "devUrl": null
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "DevOpster",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 880,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true,
+        "decorations": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "DevOpster — DevOps control plane",
+    "longDescription": "Cross-platform desktop shell for the DevOpster CLI: governance, audit, blueprint, and catalog operations across GitHub, Azure DevOps, and GitLab.",
+    "copyright": "Copyright (c) 2026 Cloud2BR",
+    "publisher": "Cloud2BR",
+    "externalBin": [
+      "binaries/devopster"
+    ]
+  },
+  "plugins": {
+    "shell": {
+      "open": true,
+      "scope": [
+        {
+          "name": "devopster-sidecar",
+          "sidecar": true,
+          "args": true
+        }
+      ]
+    }
+  }
+}

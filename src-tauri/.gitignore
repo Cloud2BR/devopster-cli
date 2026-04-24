@@ -1,0 +1,11 @@
+# Tauri build artifacts
+target/
+gen/schemas/
+
+# Bundled sidecar binary (generated per platform during release build)
+binaries/
+
+# Generated icons (regenerate via `cargo tauri icon ../assets/devopster-icon.png`)
+icons/*.png
+icons/*.ico
+icons/*.icns

@@ -67,6 +67,36 @@ Branding asset for upcoming desktop packaging:
 
 - Icon source (red lobster on blue background): `assets/devopster-icon.png`
 
+## Desktop App (Tauri)
+
+DevOpster also ships a native desktop shell built with [Tauri v2](https://tauri.app/).
+The shell wraps the existing `devopster` CLI as a sidecar and exposes a small
+allow-listed set of commands to a lightweight HTML/JS renderer.
+
+Source layout:
+
+- `src-tauri/` — Tauri Rust crate (`devopster-desktop`).
+- `frontend/` — static HTML/JS/CSS renderer (no bundler required).
+
+Local development:
+
+```bash
+# one-time
+cargo install tauri-cli --locked --version "^2"
+cargo tauri icon assets/devopster-icon.png   # generates src-tauri/icons/
+
+# build the CLI sidecar, then run the desktop app
+cargo build --release --bin devopster
+mkdir -p src-tauri/binaries
+cp target/release/devopster src-tauri/binaries/devopster
+cd src-tauri && cargo tauri dev
+```
+
+Native installers (.dmg / .msi / .deb / .AppImage) are built in CI by the
+`Desktop App (Tauri)` workflow on manual dispatch or on `desktop-v*` tags. It
+runs independently from the CLI release pipeline so a desktop build issue
+cannot block CLI releases.
+
 ### Primary local workflow (recommended)
 
 If you want local development with fully containerized tooling, use this one command from your host machine:
