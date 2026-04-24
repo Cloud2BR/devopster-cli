@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DevOpster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="DevOpster" />
+      <div>
+        <h1>DevOpster</h1>
+        <p>DevOps control plane · desktop preview</p>
+      </div>
+    </div>
+    <div class="status" id="status">Ready</div>
+  </header>
+
+  <main>
+    <aside class="sidebar">
+      <h2>Commands</h2>
+      <button class="cmd" data-args='["diagnostics"]'>Diagnostics</button>
+      <button class="cmd" data-args='["--version"]'>Version</button>
+      <button class="cmd" data-args='["inventory"]'>Inventory</button>
+      <button class="cmd" data-args='["stats"]'>Stats</button>
+      <button class="cmd" data-args='["config","show"]'>Config: show</button>
+      <button class="cmd" data-args='["setup"]'>Setup</button>
+
+      <h2>Custom</h2>
+      <input id="custom" type="text" placeholder="repo audit --org myorg" autocomplete="off" />
+      <button id="run-custom">Run</button>
+
+      <button id="clear">Clear output</button>
+    </aside>
+
+    <section class="output">
+      <div class="bar">
+        <span id="cmd-label">No command run yet.</span>
+        <span id="exit"></span>
+      </div>
+      <pre id="log" aria-live="polite"></pre>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

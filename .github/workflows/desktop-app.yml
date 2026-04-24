@@ -1,0 +1,123 @@
+name: Desktop App (Tauri)
+
+# Manual + tag-driven builds for the DevOpster desktop shell.
+# Kept separate from release-artifacts.yml so a Tauri failure cannot
+# block CLI releases on production (main).
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "desktop-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target_triple: aarch64-apple-darwin
+            sidecar_name: devopster
+          - os: ubuntu-latest
+            target_triple: x86_64-unknown-linux-gnu
+            sidecar_name: devopster
+          - os: windows-latest
+            target_triple: x86_64-pc-windows-msvc
+            sidecar_name: devopster.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Linux system deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            build-essential \
+            curl \
+            wget \
+            file
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            src-tauri/target
+          key: tauri-${{ matrix.os }}-${{ hashFiles('Cargo.lock', 'src-tauri/Cargo.toml') }}
+
+      - name: Build devopster CLI (release)
+        run: cargo build --release --bin devopster
+
+      - name: Stage sidecar binary
+        shell: bash
+        run: |
+          mkdir -p src-tauri/binaries
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp target/release/devopster.exe "src-tauri/binaries/devopster-${{ matrix.target_triple }}.exe"
+          else
+            cp target/release/devopster "src-tauri/binaries/devopster-${{ matrix.target_triple }}"
+          fi
+          ls -la src-tauri/binaries
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked --version "^2"
+
+      - name: Generate icons
+        run: cargo tauri icon assets/devopster-icon.png
+
+      - name: Build Tauri bundle
+        run: cargo tauri build
+
+      - name: Collect bundles
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p dist
+          find src-tauri/target/release/bundle -type f \
+            \( -name "*.dmg" -o -name "*.app.tar.gz" \
+               -o -name "*.msi" -o -name "*.exe" \
+               -o -name "*.deb" -o -name "*.AppImage" -o -name "*.rpm" \) \
+            -exec cp {} dist/ \; || true
+          ls -la dist || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devopster-desktop-${{ matrix.os }}
+          path: dist/*
+          if-no-files-found: warn
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
