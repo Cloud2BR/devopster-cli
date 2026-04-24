@@ -51,12 +51,17 @@ This repository now includes automated build artifacts on GitHub Actions:
 
 Current downloadable outputs:
 
-- `devopster-linux-x86_64.tar.gz`
-- `devopster-windows-x86_64.zip` (contains `.exe`)
-- `devopster-macos-x86_64.tar.gz`
-- `devopster-macos.dmg`
+- `devopster-linux-x86_64.tar.gz` (CLI binary + Linux desktop metadata + GUI launcher script)
+- `devopster-windows-x86_64.zip` (CLI binary + GUI launcher cmd + `.ico` icon)
+- `devopster-macos-x86_64.tar.gz` (CLI binary + `.icns` icon)
+- `devopster-macos.dmg` (includes CLI files plus native `DevOpster GUI.app` bundle)
 
 Desktop GUI installer packaging is planned as a next phase. Today, GUI mode is the interactive terminal launcher (`devopster gui`).
+
+End-user launch modes now included in artifacts:
+
+- CLI: run `devopster` directly
+- GUI mode: run `devopster gui` or platform launcher wrapper from release assets
 
 Branding asset for upcoming desktop packaging:
 
