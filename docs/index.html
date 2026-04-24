@@ -393,7 +393,7 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 10px 56px 10px 14px;
+        padding: 10px 82px 10px 14px;
         font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 0.86rem;
         line-height: 1.45;
@@ -410,11 +410,9 @@
         color: var(--bg);
         border: 0;
         padding: 4px 10px;
-        min-width: 112px;
         font-size: 0.72rem;
         font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        letter-spacing: 0.01em;
         border-radius: 6px;
         cursor: pointer;
         transition: background 0.15s ease;
@@ -507,13 +505,11 @@
       .platform-note .copy-cmd {
         width: 100%;
         box-sizing: border-box;
-        overflow-x: hidden;
-        white-space: normal;
+        overflow-x: auto;
+        white-space: pre;
       }
       .platform-note .copy-cmd code {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        white-space: pre;
       }
 
       /* ── Identity section ── */
@@ -796,7 +792,7 @@
               <ol class="platform-steps">
                 <li class="platform-note"><strong>Step 1:</strong> Download the latest <strong>.dmg</strong> and drag <code>DevOpster.app</code> to <code>/Applications</code>.</li>
                 <li class="platform-note"><strong>Step 2:</strong> Try opening the app. If Gatekeeper blocks it, run this once:
-                  <div class="copy-cmd"><code>xattr -cr "/Applications/DevOpster.app"</code><button type="button" class="copy-btn" data-copy='xattr -cr "/Applications/DevOpster.app"'>Copy command</button></div>
+                  <div class="copy-cmd"><code>xattr -cr "/Applications/DevOpster.app"</code><button type="button" class="copy-btn" data-copy='xattr -cr "/Applications/DevOpster.app"'>Copy</button></div>
                 </li>
                 <li class="platform-note"><strong>Step 3:</strong> Open <code>DevOpster.app</code> again and continue setup.</li>
               </ol>
@@ -816,7 +812,7 @@
               <ol class="platform-steps">
                 <li class="platform-note"><strong>Step 1:</strong> Download the latest Windows release and extract the package.</li>
                 <li class="platform-note"><strong>Step 2:</strong> Run the launcher from PowerShell:
-                  <div class="copy-cmd"><code>Unblock-File .\DevOpster-GUI.cmd; .\DevOpster-GUI.cmd</code><button type="button" class="copy-btn" data-copy="Unblock-File .\DevOpster-GUI.cmd; .\DevOpster-GUI.cmd">Copy command</button></div>
+                  <div class="copy-cmd"><code>Unblock-File .\DevOpster-GUI.cmd; .\DevOpster-GUI.cmd</code><button type="button" class="copy-btn" data-copy="Unblock-File .\DevOpster-GUI.cmd; .\DevOpster-GUI.cmd">Copy</button></div>
                 </li>
                 <li class="platform-note"><strong>Step 3:</strong> If SmartScreen appears, click <strong>More info</strong> then <strong>Run anyway</strong>.</li>
               </ol>
@@ -839,7 +835,7 @@
               <ol class="platform-steps">
                 <li class="platform-note"><strong>Step 1:</strong> Download the Linux package you prefer (<code>.deb</code>, <code>.AppImage</code>, or <code>.rpm</code>).</li>
                 <li class="platform-note"><strong>Step 2:</strong> AppImage quick run:
-                  <div class="copy-cmd"><code>chmod +x DevOpster_*.AppImage &amp;&amp; ./DevOpster_*.AppImage</code><button type="button" class="copy-btn" data-copy="chmod +x DevOpster_*.AppImage && ./DevOpster_*.AppImage">Copy command</button></div>
+                  <div class="copy-cmd"><code>chmod +x DevOpster_*.AppImage &amp;&amp; ./DevOpster_*.AppImage</code><button type="button" class="copy-btn" data-copy="chmod +x DevOpster_*.AppImage && ./DevOpster_*.AppImage">Copy</button></div>
                 </li>
                 <li class="platform-note"><strong>Step 3:</strong> Desktop integration includes <code>.desktop</code> and AppStream metadata in release artifacts.</li>
               </ol>
