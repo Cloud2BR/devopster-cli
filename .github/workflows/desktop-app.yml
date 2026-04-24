@@ -106,8 +106,74 @@ jobs:
       - name: Build Tauri bundle
         run: cargo tauri build --target ${{ matrix.target }}
 
+      - name: Import Apple signing certificate
+        if: runner.os == 'macOS' && secrets.APPLE_SIGNING_CERT_B64 != '' && secrets.APPLE_SIGNING_CERT_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != ''
+        shell: bash
+        env:
+          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
+          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PASSWORD="${KEYCHAIN_PASSWORD:-temp-keychain-pass}"
+          echo "$APPLE_SIGNING_CERT_B64" | base64 --decode > signing-cert.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import signing-cert.p12 -k build.keychain -P "$APPLE_SIGNING_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+      - name: Sign macOS app and DMG (Developer ID)
+        if: runner.os == 'macOS' && secrets.APPLE_SIGNING_CERT_B64 != '' && secrets.APPLE_SIGNING_CERT_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != ''
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="src-tauri/target/${{ matrix.target }}/release/bundle"
+          if [ -d "$BUNDLE_ROOT/macos" ]; then
+            for app in "$BUNDLE_ROOT/macos"/*.app; do
+              [ -d "$app" ] || continue
+              echo "codesign app: $app"
+              codesign --force --deep --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$app"
+              codesign --verify --deep --strict --verbose=2 "$app"
+            done
+          fi
+          if [ -d "$BUNDLE_ROOT/dmg" ]; then
+            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              echo "codesign dmg: $dmg"
+              codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$dmg"
+            done
+          fi
+
+      - name: Notarize and staple DMG
+        if: runner.os == 'macOS' && secrets.APPLE_SIGNING_CERT_B64 != '' && secrets.APPLE_SIGNING_CERT_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != ''
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="src-tauri/target/${{ matrix.target }}/release/bundle/dmg"
+          if [ -d "$BUNDLE_ROOT" ]; then
+            for dmg in "$BUNDLE_ROOT"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              echo "notarizing: $dmg"
+              xcrun notarytool submit "$dmg" \
+                --apple-id "$APPLE_ID" \
+                --team-id "$APPLE_TEAM_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+                --wait
+              xcrun stapler staple "$dmg"
+              xcrun stapler validate "$dmg"
+            done
+          fi
+
       - name: Ad-hoc codesign macOS bundle
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && (secrets.APPLE_SIGNING_CERT_B64 == '' || secrets.APPLE_SIGNING_CERT_PASSWORD == '' || secrets.APPLE_SIGNING_IDENTITY == '')
         shell: bash
         run: |
           # Apple Silicon and modern Intel macOS refuse to launch unsigned
@@ -197,7 +263,71 @@ jobs:
       - name: Build Tauri bundle
         run: cargo tauri build --target x86_64-apple-darwin
 
+      - name: Import Apple signing certificate
+        if: secrets.APPLE_SIGNING_CERT_B64 != '' && secrets.APPLE_SIGNING_CERT_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != ''
+        shell: bash
+        env:
+          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
+          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PASSWORD="${KEYCHAIN_PASSWORD:-temp-keychain-pass}"
+          echo "$APPLE_SIGNING_CERT_B64" | base64 --decode > signing-cert.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import signing-cert.p12 -k build.keychain -P "$APPLE_SIGNING_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+      - name: Sign macOS app and DMG (Developer ID)
+        if: secrets.APPLE_SIGNING_CERT_B64 != '' && secrets.APPLE_SIGNING_CERT_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != ''
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
+          if [ -d "$BUNDLE_ROOT/macos" ]; then
+            for app in "$BUNDLE_ROOT/macos"/*.app; do
+              [ -d "$app" ] || continue
+              codesign --force --deep --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$app"
+              codesign --verify --deep --strict --verbose=2 "$app"
+            done
+          fi
+          if [ -d "$BUNDLE_ROOT/dmg" ]; then
+            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$dmg"
+            done
+          fi
+
+      - name: Notarize and staple DMG
+        if: secrets.APPLE_SIGNING_CERT_B64 != '' && secrets.APPLE_SIGNING_CERT_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != ''
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle/dmg"
+          if [ -d "$BUNDLE_ROOT" ]; then
+            for dmg in "$BUNDLE_ROOT"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              xcrun notarytool submit "$dmg" \
+                --apple-id "$APPLE_ID" \
+                --team-id "$APPLE_TEAM_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+                --wait
+              xcrun stapler staple "$dmg"
+              xcrun stapler validate "$dmg"
+            done
+          fi
+
       - name: Ad-hoc codesign macOS bundle
+        if: secrets.APPLE_SIGNING_CERT_B64 == '' || secrets.APPLE_SIGNING_CERT_PASSWORD == '' || secrets.APPLE_SIGNING_IDENTITY == ''
         shell: bash
         run: |
           BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
