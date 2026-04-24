@@ -27,7 +27,6 @@ permissions:
 
 jobs:
   build:
-    if: ${{ matrix.label != 'macos-x64' || github.event_name != 'workflow_dispatch' || inputs.build_macos_x64 == true }}
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -37,9 +36,6 @@ jobs:
           - label: macos-arm64
             os: macos-14
             target: aarch64-apple-darwin
-          - label: macos-x64
-            os: macos-13
-            target: x86_64-apple-darwin
           - label: linux-x64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -153,9 +149,91 @@ jobs:
           path: dist/*
           if-no-files-found: warn
 
+  build_macos_x64:
+    if: startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.build_macos_x64 == true)
+    name: macos-x64
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            src-tauri/target
+          key: tauri-macos-x64-${{ hashFiles('Cargo.lock', 'src-tauri/Cargo.toml') }}
+
+      - name: Build devopster CLI for target
+        run: cargo build --release --target x86_64-apple-darwin --bin devopster
+
+      - name: Stage sidecar binary
+        shell: bash
+        run: |
+          mkdir -p src-tauri/binaries
+          cp "target/x86_64-apple-darwin/release/devopster" "src-tauri/binaries/devopster-x86_64-apple-darwin"
+          chmod +x "src-tauri/binaries/devopster-x86_64-apple-darwin"
+          ls -la src-tauri/binaries
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked --version "^2"
+
+      - name: Generate platform icons
+        run: cargo tauri icon assets/devopster-icon.png
+
+      - name: Build Tauri bundle
+        run: cargo tauri build --target x86_64-apple-darwin
+
+      - name: Ad-hoc codesign macOS bundle
+        shell: bash
+        run: |
+          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
+          if [ -d "$BUNDLE_ROOT/macos" ]; then
+            for app in "$BUNDLE_ROOT/macos"/*.app; do
+              [ -d "$app" ] || continue
+              codesign --force --deep --options runtime --sign - "$app"
+              codesign --verify --deep --strict --verbose=2 "$app" || true
+            done
+          fi
+          if [ -d "$BUNDLE_ROOT/dmg" ]; then
+            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              codesign --force --sign - "$dmg" || true
+            done
+          fi
+
+      - name: Collect bundles
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p dist
+          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
+          if [ -d "$BUNDLE_ROOT" ]; then
+            find "$BUNDLE_ROOT" -type f \
+              \( -name "*.dmg" -o -name "*.app.tar.gz" \) \
+              -exec cp {} dist/ \; || true
+          fi
+          ls -la dist || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devopster-desktop-macos-x64
+          path: dist/*
+          if-no-files-found: warn
+
   publish:
     if: startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
-    needs: build
+    needs: [build, build_macos_x64]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
