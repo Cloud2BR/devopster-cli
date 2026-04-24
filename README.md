@@ -1,4 +1,4 @@
-# devopster-cli
+# DevOpster (CLI + GUI)
 
 Costa Rica / USA
 
@@ -51,16 +51,21 @@ This repository now includes automated build artifacts on GitHub Actions:
 
 Current downloadable outputs:
 
-- `devopster-linux-x86_64.tar.gz`
-- `devopster-windows-x86_64.zip` (contains `.exe`)
-- `devopster-macos-x86_64.tar.gz`
-- `devopster-macos.dmg`
+- `devopster-linux-x86_64.tar.gz` (CLI binary + Linux desktop metadata + GUI launcher script)
+- `devopster-windows-x86_64.zip` (CLI binary + GUI launcher cmd + `.ico` icon)
+- `devopster-macos-x86_64.tar.gz` (CLI binary + `.icns` icon)
+- `devopster-macos.dmg` (includes CLI files plus native `DevOpster GUI.app` bundle)
 
 Desktop GUI installer packaging is planned as a next phase. Today, GUI mode is the interactive terminal launcher (`devopster gui`).
 
+End-user launch modes now included in artifacts:
+
+- CLI: run `devopster` directly
+- GUI mode: run `devopster gui` or platform launcher wrapper from release assets
+
 Branding asset for upcoming desktop packaging:
 
-- Icon source (red lobster on blue background): `assets/devopster-icon.svg`
+- Icon source (red lobster on blue background): `assets/devopster-icon.png`
 
 ### Primary local workflow (recommended)
 
@@ -262,6 +267,6 @@ blueprint:
 <!-- START BADGE -->
 <div align="center">
   <img src="https://img.shields.io/badge/Total%20views-20-limegreen" alt="Total views">
-  <p>Refresh Date: 2026-04-23</p>
+  <p>Refresh Date: 2026-04-24</p>
 </div>
 <!-- END BADGE -->
