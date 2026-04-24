@@ -44,11 +44,6 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install Pillow (icon ICO generation)
-        if: runner.os != 'Linux'
-        shell: bash
-        run: pip3 install --quiet pillow
-
       - name: Linux system deps
         if: runner.os == 'Linux'
         run: |
@@ -63,7 +58,9 @@ jobs:
             curl \
             wget \
             file \
-            python3-pil
+            build-essential \
+            curl \
+            wget
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -98,6 +95,31 @@ jobs:
 
       - name: Build Tauri bundle
         run: cargo tauri build --target ${{ matrix.target }}
+
+      - name: Ad-hoc codesign macOS bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # Apple Silicon and modern Intel macOS refuse to launch unsigned
+          # apps with the cryptic "DevOpster.app is damaged" alert. An ad-hoc
+          # signature (sign identity "-") satisfies the loader so the app
+          # runs without users having to run `xattr -cr DevOpster.app`.
+          BUNDLE_ROOT="src-tauri/target/${{ matrix.target }}/release/bundle"
+          if [ -d "$BUNDLE_ROOT/macos" ]; then
+            for app in "$BUNDLE_ROOT/macos"/*.app; do
+              [ -d "$app" ] || continue
+              echo "codesign $app"
+              codesign --force --deep --options runtime --sign - "$app"
+              codesign --verify --deep --strict --verbose=2 "$app" || true
+            done
+          fi
+          if [ -d "$BUNDLE_ROOT/dmg" ]; then
+            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              echo "codesign $dmg"
+              codesign --force --sign - "$dmg" || true
+            done
+          fi
 
       - name: Collect bundles
         if: always()
