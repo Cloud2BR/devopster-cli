@@ -841,9 +841,9 @@
               <a class="download-label" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Open DevOpster macOS download">↓ Download for macOS</a>
               <div class="asset-files" id="assets-macos"></div>
               <ol class="platform-steps">
-                <li class="platform-note"><strong>Step 1:</strong> Download the latest <strong>.dmg</strong> and drag <code>DevOpster.app</code> to <code>/Applications</code>.</li>
-                <li class="platform-note"><strong>Step 2:</strong> For stable releases, open normally. If Gatekeeper blocks a prerelease, run this once:
-                  <div class="copy-cmd"><code>xattr -cr "/Applications/DevOpster.app"</code><button type="button" class="copy-btn" data-copy='xattr -cr "/Applications/DevOpster.app"'>Copy</button></div>
+                <li class="platform-note"><strong>Step 1:</strong> Download the latest <strong>.dmg</strong> and drag <code>DevOpster.app</code> to <code>/Applications</code> (recommended) or any folder you prefer, for example <code>~/Applications</code>.</li>
+                <li class="platform-note"><strong>Step 2:</strong> For stable releases, open normally. If Gatekeeper blocks a prerelease, run this once using your install path:
+                  <div class="copy-cmd"><code>APP_PATH="$HOME/Applications/DevOpster.app"; xattr -cr "$APP_PATH"</code><button type="button" class="copy-btn" data-copy='APP_PATH="$HOME/Applications/DevOpster.app"; xattr -cr "$APP_PATH"'>Copy</button></div>
                 </li>
                 <li class="platform-note"><strong>Step 3:</strong> Open <code>DevOpster.app</code> again. Signed and notarized builds should launch without warnings.</li>
               </ol>

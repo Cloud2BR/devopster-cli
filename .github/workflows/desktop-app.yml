@@ -453,7 +453,7 @@ jobs:
 
             | Platform | File | Install notes |
             |---|---|---|
-            | **macOS** | `*.dmg` | Recommended. Drag `DevOpster.app` to Applications |
+            | **macOS** | `*.dmg` | Recommended. Drag `DevOpster.app` to `/Applications` or `~/Applications` |
             | **macOS** | `*.app.tar.gz` | Advanced/manual extraction |
             | **Windows** | `*-setup.exe` | Recommended NSIS installer |
             | **Windows** | `*.msi` | MSI deployment/install option |
@@ -464,10 +464,11 @@ jobs:
             ### macOS trust and verification
 
             - Stable releases are signed and notarized when Apple credentials are configured in CI.
-            - If you are testing an unsigned prerelease build and Gatekeeper blocks launch, run:
+            - If you are testing an unsigned prerelease build and Gatekeeper blocks launch, run with your chosen install path:
 
             ```bash
-            xattr -cr "/Applications/DevOpster.app"
+            APP_PATH="$HOME/Applications/DevOpster.app"
+            xattr -cr "$APP_PATH"
             ```
 
             ### Windows SmartScreen
