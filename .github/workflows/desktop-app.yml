@@ -230,6 +230,10 @@ jobs:
                  -o -name "*.deb" -o -name "*.AppImage" -o -name "*.rpm" \) \
               -exec cp {} dist/ \; || true
           fi
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            cp scripts/install-macos-app.sh dist/DevOpster-macos-install.sh
+            chmod +x dist/DevOpster-macos-install.sh
+          fi
           ls -la dist || true
 
       - name: Upload artifacts
@@ -392,6 +396,8 @@ jobs:
               \( -name "*.dmg" -o -name "*.app.tar.gz" \) \
               -exec cp {} dist/ \; || true
           fi
+          cp scripts/install-macos-app.sh dist/DevOpster-macos-install.sh
+          chmod +x dist/DevOpster-macos-install.sh
           ls -la dist || true
 
       - name: Upload artifacts
@@ -455,6 +461,7 @@ jobs:
             |---|---|---|
             | **macOS** | `*.dmg` | Recommended. Drag `DevOpster.app` to `/Applications` or `~/Applications` |
             | **macOS** | `*.app.tar.gz` | Advanced/manual extraction |
+            | **macOS** | `DevOpster-macos-install.sh` | One-click installer script (path-aware + quarantine clear) |
             | **Windows** | `*-setup.exe` | Recommended NSIS installer |
             | **Windows** | `*.msi` | MSI deployment/install option |
             | **Linux** | `*.AppImage` | `chmod +x DevOpster*.AppImage && ./DevOpster*.AppImage` |
@@ -464,6 +471,13 @@ jobs:
             ### macOS trust and verification
 
             - Stable releases are signed and notarized when Apple credentials are configured in CI.
+            - You can run the one-click installer from the mounted DMG or extracted assets:
+
+            ```bash
+            chmod +x ./DevOpster-macos-install.sh
+            ./DevOpster-macos-install.sh
+            ```
+
             - If you are testing an unsigned prerelease build and Gatekeeper blocks launch, run with your chosen install path:
 
             ```bash

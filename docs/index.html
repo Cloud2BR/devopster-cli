@@ -842,10 +842,13 @@
               <div class="asset-files" id="assets-macos"></div>
               <ol class="platform-steps">
                 <li class="platform-note"><strong>Step 1:</strong> Download the latest <strong>.dmg</strong> and drag <code>DevOpster.app</code> to <code>/Applications</code> (recommended) or any folder you prefer, for example <code>~/Applications</code>.</li>
-                <li class="platform-note"><strong>Step 2:</strong> For stable releases, open normally. If Gatekeeper blocks a prerelease, run this once using your install path:
+                <li class="platform-note"><strong>Step 2:</strong> Optional one-click installer from release assets:
+                  <div class="copy-cmd"><code>chmod +x ./DevOpster-macos-install.sh &amp;&amp; ./DevOpster-macos-install.sh</code><button type="button" class="copy-btn" data-copy='chmod +x ./DevOpster-macos-install.sh && ./DevOpster-macos-install.sh'>Copy</button></div>
+                </li>
+                <li class="platform-note"><strong>Step 3:</strong> For stable releases, open normally. If Gatekeeper blocks a prerelease, run this once using your install path:
                   <div class="copy-cmd"><code>APP_PATH="$HOME/Applications/DevOpster.app"; xattr -cr "$APP_PATH"</code><button type="button" class="copy-btn" data-copy='APP_PATH="$HOME/Applications/DevOpster.app"; xattr -cr "$APP_PATH"'>Copy</button></div>
                 </li>
-                <li class="platform-note"><strong>Step 3:</strong> Open <code>DevOpster.app</code> again. Signed and notarized builds should launch without warnings.</li>
+                <li class="platform-note"><strong>Step 4:</strong> Open <code>DevOpster.app</code> again. Signed and notarized builds should launch without warnings.</li>
               </ol>
             </article>
             <article class="platform-card" aria-label="DevOpster Windows download">
@@ -1041,7 +1044,7 @@
 
         function pickAssets(assets, platform) {
           var rules = {
-            macos: [/.dmg$/i, /\.app\.tar\.gz$/i, /macos.*\.zip$/i, /darwin.*\.zip$/i],
+            macos: [/.dmg$/i, /\.app\.tar\.gz$/i, /macos-install\.sh$/i, /macos.*\.zip$/i, /darwin.*\.zip$/i],
             windows: [/-setup\.exe$/i, /\.msi$/i, /\.exe$/i, /windows.*\.zip$/i, /win.*\.zip$/i, /\.zip$/i],
             linux: [/\.AppImage$/i, /\.deb$/i, /\.rpm$/i, /linux.*\.tar\.gz$/i, /\.tar\.gz$/i]
           };
