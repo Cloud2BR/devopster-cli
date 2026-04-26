@@ -56,7 +56,8 @@ Current downloadable outputs:
 - `devopster-macos-x86_64.tar.gz` (CLI binary + `.icns` icon)
 - `devopster-macos.dmg` (includes CLI files plus native `DevOpster GUI.app` bundle)
 
-Desktop GUI installer packaging is planned as a next phase. Today, GUI mode is the interactive terminal launcher (`devopster gui`).
+Desktop installers are published by the desktop release workflow (`desktop-v*` tags or manual dispatch with publish enabled).
+Download from GitHub Releases and install using the platform package (`.dmg`, `-setup.exe`/`.msi`, `.deb`/`.AppImage`/`.rpm`).
 
 End-user launch modes now included in artifacts:
 

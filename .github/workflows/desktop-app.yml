@@ -418,12 +418,60 @@ jobs:
           find artifacts -type f -exec cp {} flat/ \;
           ls -la flat
 
+      - name: Compute release metadata
+        id: release_meta
+        shell: bash
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG_NAME="${{ inputs.release_tag }}"
+          else
+            TAG_NAME="${GITHUB_REF_NAME}"
+          fi
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "release_name=DevOpster Desktop ${TAG_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Delete existing release if present
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.release_meta.outputs.tag_name }}"
+          gh release delete "${TAG}" --repo "${{ github.repository }}" --yes 2>/dev/null \
+            && echo "Deleted existing release for ${TAG}." \
+            || echo "No existing release for ${TAG}, creating fresh."
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
           files: flat/*
-          generate_release_notes: true
-          name: DevOpster Desktop ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          fail_on_unmatched_files: true
+          name: ${{ steps.release_meta.outputs.release_name }}
+          body: |
+            ## Install DevOpster Desktop ${{ steps.release_meta.outputs.tag_name }}
+
+            Download the installer that matches your OS.
+
+            | Platform | File | Install notes |
+            |---|---|---|
+            | **macOS** | `*.dmg` | Recommended. Drag `DevOpster.app` to Applications |
+            | **macOS** | `*.app.tar.gz` | Advanced/manual extraction |
+            | **Windows** | `*-setup.exe` | Recommended NSIS installer |
+            | **Windows** | `*.msi` | MSI deployment/install option |
+            | **Linux** | `*.AppImage` | `chmod +x DevOpster*.AppImage && ./DevOpster*.AppImage` |
+            | **Linux** | `*.deb` | `sudo apt install ./DevOpster*.deb` |
+            | **Linux** | `*.rpm` | `sudo rpm -i DevOpster*.rpm` |
+
+            ### macOS trust and verification
+
+            - Stable releases are signed and notarized when Apple credentials are configured in CI.
+            - If you are testing an unsigned prerelease build and Gatekeeper blocks launch, run:
+
+            ```bash
+            xattr -cr "/Applications/DevOpster.app"
+            ```
+
+            ### Windows SmartScreen
+
+            If SmartScreen appears for an unsigned build, choose **More info** and then **Run anyway**.
           draft: false
           prerelease: ${{ github.event_name == 'workflow_dispatch' }}
