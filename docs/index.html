@@ -853,26 +853,37 @@
             </article>
             <article class="platform-card" aria-label="DevOpster Windows download">
               <span class="platform-icon platform-icon--windows" aria-hidden="true">
-                <img src="https://cdn.simpleicons.org/windows/0f6cbd" alt="" loading="lazy" decoding="async" />
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5 8.5L22 6.2V22H5V8.5Z" fill="currentColor"/>
+                  <path d="M26 5.7L43 3.4V22H26V5.7Z" fill="currentColor" opacity="0.9"/>
+                  <path d="M5 26H22V41.8L5 39.5V26Z" fill="currentColor" opacity="0.9"/>
+                  <path d="M26 26H43V44.6L26 42.3V26Z" fill="currentColor"/>
+                </svg>
               </span>
               <h3>Windows</h3>
-              <p class="formats">.zip + .ico &nbsp;·&nbsp; <code>DevOpster-GUI.cmd</code></p>
+              <p class="formats">-setup.exe recommended &nbsp;·&nbsp; .msi alternative</p>
               <a class="download-label" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Open DevOpster Windows download">↓ Download for Windows</a>
               <div class="asset-files" id="assets-windows"></div>
               <ol class="platform-steps">
-                <li class="platform-note"><strong>Step 1:</strong> Download the latest Windows release and extract the package.</li>
-                <li class="platform-note"><strong>Step 2:</strong> Run the launcher from PowerShell:
-                  <div class="copy-cmd"><code>Unblock-File .\DevOpster-GUI.cmd; .\DevOpster-GUI.cmd</code><button type="button" class="copy-btn" data-copy="Unblock-File .\DevOpster-GUI.cmd; .\DevOpster-GUI.cmd">Copy</button></div>
-                </li>
+                <li class="platform-note"><strong>Step 1:</strong> Download <code>*-setup.exe</code> (or <code>.msi</code> if your organization prefers MSI).</li>
+                <li class="platform-note"><strong>Step 2:</strong> Run the installer and choose the install folder you want.</li>
                 <li class="platform-note"><strong>Step 3:</strong> If SmartScreen appears, click <strong>More info</strong> then <strong>Run anyway</strong>.</li>
               </ol>
             </article>
             <article class="platform-card" aria-label="DevOpster Linux download">
               <span class="platform-icon platform-icon--linux" aria-hidden="true">
-                <img src="https://cdn.simpleicons.org/linux/FCC624" alt="" loading="lazy" decoding="async" />
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M24.049 7C19.979 7 17.421 10.306 17.421 14.604C17.421 16.2 17.721 17.314 18.384 18.801C15.591 20.442 13.837 23.989 13.837 28.455C13.837 34.781 18.159 41 24.049 41C29.939 41 34.261 34.781 34.261 28.455C34.261 24.002 32.49 20.445 29.714 18.805C30.376 17.329 30.676 16.214 30.676 14.604C30.676 10.306 28.118 7 24.049 7Z" fill="currentColor"/>
+                  <ellipse cx="21.2" cy="14.8" rx="1.35" ry="1.75" fill="#ffffff"/>
+                  <ellipse cx="26.8" cy="14.8" rx="1.35" ry="1.75" fill="#ffffff"/>
+                  <ellipse cx="21.2" cy="15.15" rx="0.48" ry="0.62" fill="#111111"/>
+                  <ellipse cx="26.8" cy="15.15" rx="0.48" ry="0.62" fill="#111111"/>
+                  <path d="M22.5 18.55C23.157 18.879 24.856 18.879 25.512 18.55" stroke="#F59E0B" stroke-width="1.7" stroke-linecap="round"/>
+                  <path d="M16 35.2C18.014 34.099 19.155 33.804 21.075 33.804C22.41 33.804 23.179 34.285 24.032 34.285C24.885 34.285 25.652 33.804 26.988 33.804C28.907 33.804 30.047 34.099 32.061 35.2" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
               </span>
               <h3>Linux</h3>
-              <p class="formats">.tar.gz &nbsp;·&nbsp; .desktop &nbsp;·&nbsp; AppStream</p>
+              <p class="formats">.AppImage &nbsp;·&nbsp; .deb &nbsp;·&nbsp; .rpm</p>
               <a class="download-label" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Open DevOpster Linux download">↓ Download for Linux</a>
               <div class="asset-files" id="assets-linux"></div>
               <ol class="platform-steps">
@@ -880,7 +891,7 @@
                 <li class="platform-note"><strong>Step 2:</strong> AppImage quick run:
                   <div class="copy-cmd"><code>chmod +x DevOpster_*.AppImage &amp;&amp; ./DevOpster_*.AppImage</code><button type="button" class="copy-btn" data-copy="chmod +x DevOpster_*.AppImage && ./DevOpster_*.AppImage">Copy</button></div>
                 </li>
-                <li class="platform-note"><strong>Step 3:</strong> Desktop integration includes <code>.desktop</code> and AppStream metadata in release artifacts.</li>
+                <li class="platform-note"><strong>Step 3:</strong> Package install shortcuts: <code>sudo apt install ./DevOpster_*.deb</code> or <code>sudo rpm -i DevOpster-*.rpm</code>.</li>
               </ol>
             </article>
           </div>
