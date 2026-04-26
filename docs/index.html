@@ -854,11 +854,11 @@
                   <p class="platform-subtitle">DMG first, .app.tar.gz fallback</p>
                 </div>
               </div>
-              <p class="platform-desc">Drag the .dmg to /Applications manually, or download <code>DevOpster-macos-install.command</code> and double-click it for a guided install.</p>
+              <p class="platform-desc">Open the .dmg and find <code>DevOpster-macos-install.command</code> inside — double-click it for a guided install.</p>
               <a class="download-label" id="dl-btn-macos" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Download DevOpster for macOS">↓ Download for macOS</a>
               <div class="asset-files" id="assets-macos"></div>
               <p class="platform-tip">
-                <strong>Easiest:</strong> download <code>DevOpster-macos-install.command</code> from the file list below, then double-click it in Finder. It will handle quarantine removal and guide you through install.
+                <strong>Easiest:</strong> open the .dmg and double-click <code>DevOpster-macos-install.command</code> inside. It will handle quarantine removal and guide you through install.
                 <br/><strong>Manual:</strong> drag <code>DevOpster.app</code> from the .dmg into <code>/Applications</code>.
                 <br/><strong>Gatekeeper:</strong> if macOS blocks it at first launch:
                 <span class="copy-cmd" style="display:flex;align-items:center;gap:8px;margin-top:6px;"><code>xattr -cr "/Applications/DevOpster.app"</code><button type="button" class="copy-btn" data-copy='xattr -cr "/Applications/DevOpster.app"'>Copy</button></span>
@@ -927,10 +927,10 @@
                   <span aria-hidden="true" style="font-size:1.1em;"></span> macOS
                 </p>
                 <ol style="margin:0;padding-left:18px;color:var(--muted);font-size:0.84rem;line-height:1.7;">
-                  <li>Download the latest DMG from the macOS card.</li>
-                  <li>Open the disk image and drag <code style="background:var(--surface2);padding:1px 4px;border-radius:4px;">DevOpster.app</code> into <code style="background:var(--surface2);padding:1px 4px;border-radius:4px;">/Applications</code>.</li>
-                  <li>If macOS blocks it at first launch, open Terminal and run:<br><code style="background:var(--surface2);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px;">xattr -cr "/Applications/DevOpster.app"</code></li>
-                  <li>Reopen the app and continue.</li>
+                  <li>Download the latest DMG from the macOS card and open it.</li>
+                  <li><strong>Easiest: </strong> double-click <code style="background:var(--surface2);padding:1px 4px;border-radius:4px;">DevOpster-macos-install.command</code> inside the DMG. It will install and guide you.</li>
+                  <li><strong>Or manually: </strong> drag <code style="background:var(--surface2);padding:1px 4px;border-radius:4px;">DevOpster.app</code> to <code style="background:var(--surface2);padding:1px 4px;border-radius:4px;">/Applications</code>.</li>
+                  <li>If macOS blocks it at first launch, run: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;">xattr -cr "/Applications/DevOpster.app"</code></li>
                 </ol>
               </div>
               <div style="border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);padding:18px 20px;">
@@ -1117,7 +1117,7 @@
 
         function pickAssets(assets, platform) {
           var rules = {
-            macos: [/.dmg$/i, /\.app\.tar\.gz$/i, /macos-install\.command$/i, /macos-install\.sh$/i, /macos.*\.zip$/i, /darwin.*\.zip$/i],
+            macos: [/.dmg$/i, /\.app\.tar\.gz$/i, /macos.*\.zip$/i, /darwin.*\.zip$/i],
             windows: [/-setup\.exe$/i, /\.msi$/i, /\.exe$/i, /windows.*\.zip$/i, /win.*\.zip$/i, /\.zip$/i],
             linux: [/\.AppImage$/i, /\.deb$/i, /\.rpm$/i, /linux.*\.tar\.gz$/i, /\.tar\.gz$/i]
           };
