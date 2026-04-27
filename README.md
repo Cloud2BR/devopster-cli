@@ -56,8 +56,8 @@ Current downloadable outputs:
 - `devopster-macos-x86_64.tar.gz` (CLI binary + `.icns` icon)
 - `devopster-macos.dmg` (includes CLI files plus native `DevOpster GUI.app` bundle)
 
-Desktop installers are published by the desktop release workflow (`desktop-v*` tags or manual dispatch with publish enabled).
-Download from GitHub Releases and install using the platform package (`.dmg`, `-setup.exe`/`.msi`, `.deb`/`.AppImage`/`.rpm`).
+DevOpster now publishes one unified release (`v*` tags or manual dispatch with publish enabled) that includes both GUI installers and standalone CLI artifacts.
+Download from GitHub Releases and choose either the desktop installer (`.dmg`, `-setup.exe`/`.msi`, `.deb`/`.AppImage`/`.rpm`) or the standalone CLI artifact for your platform.
 
 End-user launch modes now included in artifacts:
 
@@ -108,7 +108,7 @@ cp "target/$TARGET/release/devopster" "src-tauri/binaries/devopster-$TARGET"
 cd src-tauri && cargo tauri dev
 ```
 
-Native installers built in CI by the `Desktop App (Tauri)` workflow:
+Native installers built in CI by the `Unified App Release (CLI + GUI)` workflow:
 
 | OS                | Bundle                       |
 | ----------------- | ---------------------------- |
@@ -117,9 +117,8 @@ Native installers built in CI by the `Desktop App (Tauri)` workflow:
 | Windows x64       | `.msi` (WiX) + NSIS `-setup.exe` |
 | Linux x64         | `.deb` / `.AppImage`         |
 
-Triggers: manual `workflow_dispatch` or pushing a `desktop-v*` tag. The
-desktop pipeline runs independently from the CLI release pipeline so a
-desktop build issue cannot block CLI releases.
+Triggers: manual `workflow_dispatch` or pushing a `v*` tag.
+Each release bundles both interfaces from the same version stream.
 
 ### Primary local workflow (recommended)
 

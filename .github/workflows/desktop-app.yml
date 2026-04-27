@@ -1,9 +1,9 @@
-name: Desktop App (Tauri)
+name: Unified App Release (CLI + GUI)
 
 # Builds the DevOpster desktop app for macOS (Intel + Apple Silicon),
-# Windows x64, and Linux x64. Runs on manual dispatch and on `desktop-v*`
-# tags. Kept independent from release-artifacts.yml so a Tauri failure
-# never blocks CLI releases.
+# Windows x64, and Linux x64. Runs on manual dispatch and on `v*`
+# tags and publishes a single release containing both GUI installers
+# and standalone CLI artifacts.
 
 on:
   workflow_dispatch:
@@ -14,10 +14,10 @@ on:
         type: boolean
         default: false
       release_tag:
-        description: Release tag to create/use when publishing manually (for example desktop-v0.1.0-debug1)
+        description: Release tag to create/use when publishing manually (for example v0.1.0)
         required: false
         type: string
-        default: "desktop-v0.1.0-debug1"
+        default: "v0.1.0"
       build_macos_x64:
         description: Build Intel macOS artifact (macos-13, may queue longer)
         required: false
@@ -25,7 +25,7 @@ on:
         default: false
   push:
     tags:
-      - "desktop-v*"
+      - "v*"
 
 permissions:
   contents: write
@@ -230,6 +230,14 @@ jobs:
                  -o -name "*.deb" -o -name "*.AppImage" -o -name "*.rpm" \) \
               -exec cp {} dist/ \; || true
           fi
+          CLI_ROOT="target/${{ matrix.target }}/release"
+          if [ "${{ runner.os }}" = "Linux" ] && [ -f "$CLI_ROOT/devopster" ]; then
+            tar -czf dist/devopster-cli-linux-x86_64.tar.gz -C "$CLI_ROOT" devopster
+          elif [ "${{ runner.os }}" = "Windows" ] && [ -f "$CLI_ROOT/devopster.exe" ]; then
+            cp "$CLI_ROOT/devopster.exe" dist/devopster-cli-windows-x86_64.exe
+          elif [ "${{ runner.os }}" = "macOS" ] && [ -f "$CLI_ROOT/devopster" ]; then
+            tar -czf dist/devopster-cli-macos-aarch64.tar.gz -C "$CLI_ROOT" devopster
+          fi
           ls -la dist || true
 
       - name: Upload artifacts
@@ -241,7 +249,7 @@ jobs:
           if-no-files-found: warn
 
   build_macos_x64:
-    if: startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.build_macos_x64 == true)
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.build_macos_x64 == true)
     name: macos-x64
     runs-on: macos-13
     steps:
@@ -392,6 +400,10 @@ jobs:
               \( -name "*.dmg" -o -name "*.app.tar.gz" \) \
               -exec cp {} dist/ \; || true
           fi
+          CLI_ROOT="target/x86_64-apple-darwin/release"
+          if [ -f "$CLI_ROOT/devopster" ]; then
+            tar -czf dist/devopster-cli-macos-x86_64.tar.gz -C "$CLI_ROOT" devopster
+          fi
           ls -la dist || true
 
       - name: Upload artifacts
@@ -403,7 +415,7 @@ jobs:
           if-no-files-found: warn
 
   publish:
-    if: (startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)) && needs.build.result == 'success' && (needs.build_macos_x64.result == 'success' || needs.build_macos_x64.result == 'skipped')
+    if: (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)) && needs.build.result == 'success' && (needs.build_macos_x64.result == 'success' || needs.build_macos_x64.result == 'skipped')
     needs: [build, build_macos_x64]
     runs-on: ubuntu-latest
     steps:
@@ -428,16 +440,7 @@ jobs:
             TAG_NAME="${GITHUB_REF_NAME}"
           fi
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-          echo "release_name=DevOpster Desktop ${TAG_NAME}" >> "$GITHUB_OUTPUT"
-
-      - name: Delete existing release if present
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.release_meta.outputs.tag_name }}"
-          gh release delete "${TAG}" --repo "${{ github.repository }}" --yes 2>/dev/null \
-            && echo "Deleted existing release for ${TAG}." \
-            || echo "No existing release for ${TAG}, creating fresh."
+          echo "release_name=DevOpster ${TAG_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -447,19 +450,22 @@ jobs:
           fail_on_unmatched_files: true
           name: ${{ steps.release_meta.outputs.release_name }}
           body: |
-            ## Install DevOpster Desktop ${{ steps.release_meta.outputs.tag_name }}
+            ## Install DevOpster (CLI + GUI) ${{ steps.release_meta.outputs.tag_name }}
 
-            Download the installer that matches your OS.
+            One release, two interfaces: native GUI installers plus standalone CLI artifacts.
 
             | Platform | File | Install notes |
             |---|---|---|
             | **macOS** | `*.dmg` | Recommended. Drag `DevOpster.app` to `/Applications` or `~/Applications` |
             | **macOS** | `*.app.tar.gz` | Advanced/manual extraction |
+            | **macOS CLI** | `devopster-cli-macos-*.tar.gz` | Extract and run `./devopster` |
             | **Windows** | `*-setup.exe` | Recommended NSIS installer |
             | **Windows** | `*.msi` | MSI deployment/install option |
+            | **Windows CLI** | `devopster-cli-windows-x86_64.exe` | Run directly from terminal/PowerShell |
             | **Linux** | `*.AppImage` | `chmod +x DevOpster*.AppImage && ./DevOpster*.AppImage` |
             | **Linux** | `*.deb` | `sudo apt install ./DevOpster*.deb` |
             | **Linux** | `*.rpm` | `sudo rpm -i DevOpster*.rpm` |
+            | **Linux CLI** | `devopster-cli-linux-x86_64.tar.gz` | Extract and run `./devopster` |
 
             ### macOS trust and verification
 
@@ -467,9 +473,13 @@ jobs:
             - If macOS blocks opening the downloaded DMG itself, clear quarantine on the DMG and open it:
 
             ```bash
-            DMG_PATH="$HOME/Downloads/DevOpster_0.1.0_aarch64.dmg"
-            xattr -dr com.apple.quarantine "$DMG_PATH"
-            open "$DMG_PATH"
+            DMG_PATH="$(ls -t "$HOME"/Downloads/DevOpster*.dmg 2>/dev/null | head -n 1)"
+            if [ -n "$DMG_PATH" ]; then
+              xattr -dr com.apple.quarantine "$DMG_PATH"
+              open "$DMG_PATH"
+            else
+              echo "No DevOpster DMG found in $HOME/Downloads"
+            fi
             ```
 
             - Install normally: open the DMG and drag `DevOpster.app` into `/Applications`.
