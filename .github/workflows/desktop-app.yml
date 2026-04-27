@@ -113,30 +113,41 @@ jobs:
           set -euo pipefail
           BUNDLE_ROOT="src-tauri/target/${{ matrix.target }}/release/bundle/dmg"
           [ -d "$BUNDLE_ROOT" ] || { echo "No DMG bundle directory found"; exit 0; }
-          
+
           for dmg in "$BUNDLE_ROOT"/*.dmg; do
             [ -f "$dmg" ] || continue
             echo "Injecting installer scripts into: $dmg"
-            
-            # Create temp mount point
-            MOUNT_POINT="/tmp/devopster-dmg-$$"
+
+            TEMP_DIR="$(mktemp -d)"
+            MOUNT_POINT="$TEMP_DIR/mount"
+            RW_STEM="$TEMP_DIR/devopster-installer-rw"
+            FINAL_STEM="$TEMP_DIR/devopster-installer-final"
+            RW_DMG="$RW_STEM.dmg"
+            FINAL_DMG="$FINAL_STEM.dmg"
             mkdir -p "$MOUNT_POINT"
-            
-            # Attach the DMG
-            hdiutil attach "$dmg" -mountpoint "$MOUNT_POINT" -nobrowse
-            
-            # Copy installer scripts into the mounted DMG
+
+            cleanup() {
+              hdiutil detach "$MOUNT_POINT" -quiet >/dev/null 2>&1 || true
+              rm -rf "$TEMP_DIR"
+            }
+
+            trap cleanup RETURN
+
+            hdiutil convert "$dmg" -format UDRW -o "$RW_STEM" >/dev/null
+            hdiutil attach "$RW_DMG" -mountpoint "$MOUNT_POINT" -readwrite -noverify -nobrowse >/dev/null
+
             cp scripts/install-macos-app.sh "$MOUNT_POINT/DevOpster-macos-install.sh"
             cp scripts/install-macos-app.command "$MOUNT_POINT/DevOpster-macos-install.command"
-            chmod +x "$MOUNT_POINT/DevOpster-macos-install.sh"
-            chmod +x "$MOUNT_POINT/DevOpster-macos-install.command"
-            
-            echo "Files added to DMG:"
-            ls -la "$MOUNT_POINT/" | grep -E '\.(sh|command)$' || true
-            
-            # Detach the DMG
-            hdiutil detach "$MOUNT_POINT"
-            rm -rf "$MOUNT_POINT"
+            chmod +x "$MOUNT_POINT/DevOpster-macos-install.sh" "$MOUNT_POINT/DevOpster-macos-install.command"
+
+            sync
+            hdiutil detach "$MOUNT_POINT" >/dev/null
+
+            hdiutil convert "$RW_DMG" -format UDZO -o "$FINAL_STEM" >/dev/null
+            mv "$FINAL_DMG" "$dmg"
+
+            trap - RETURN
+            rm -rf "$TEMP_DIR"
           done
 
       - name: Import Apple signing certificate
@@ -315,6 +326,49 @@ jobs:
 
       - name: Build Tauri bundle
         run: cargo tauri build --target x86_64-apple-darwin
+
+      - name: Inject installer scripts into DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle/dmg"
+          [ -d "$BUNDLE_ROOT" ] || { echo "No DMG bundle directory found"; exit 0; }
+
+          for dmg in "$BUNDLE_ROOT"/*.dmg; do
+            [ -f "$dmg" ] || continue
+            echo "Injecting installer scripts into: $dmg"
+
+            TEMP_DIR="$(mktemp -d)"
+            MOUNT_POINT="$TEMP_DIR/mount"
+            RW_STEM="$TEMP_DIR/devopster-installer-rw"
+            FINAL_STEM="$TEMP_DIR/devopster-installer-final"
+            RW_DMG="$RW_STEM.dmg"
+            FINAL_DMG="$FINAL_STEM.dmg"
+            mkdir -p "$MOUNT_POINT"
+
+            cleanup() {
+              hdiutil detach "$MOUNT_POINT" -quiet >/dev/null 2>&1 || true
+              rm -rf "$TEMP_DIR"
+            }
+
+            trap cleanup RETURN
+
+            hdiutil convert "$dmg" -format UDRW -o "$RW_STEM" >/dev/null
+            hdiutil attach "$RW_DMG" -mountpoint "$MOUNT_POINT" -readwrite -noverify -nobrowse >/dev/null
+
+            cp scripts/install-macos-app.sh "$MOUNT_POINT/DevOpster-macos-install.sh"
+            cp scripts/install-macos-app.command "$MOUNT_POINT/DevOpster-macos-install.command"
+            chmod +x "$MOUNT_POINT/DevOpster-macos-install.sh" "$MOUNT_POINT/DevOpster-macos-install.command"
+
+            sync
+            hdiutil detach "$MOUNT_POINT" >/dev/null
+
+            hdiutil convert "$RW_DMG" -format UDZO -o "$FINAL_STEM" >/dev/null
+            mv "$FINAL_DMG" "$dmg"
+
+            trap - RETURN
+            rm -rf "$TEMP_DIR"
+          done
 
       - name: Import Apple signing certificate
         shell: bash
