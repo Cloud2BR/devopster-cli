@@ -236,6 +236,41 @@ jobs:
             rm -f "$RW_DMG"
           done
 
+      - name: Verify DMG contains signed app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_DIR="src-tauri/target/${{ matrix.target }}/release/bundle/dmg"
+          if [ -d "$DMG_DIR" ]; then
+            for dmg in "$DMG_DIR"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              echo "Verifying app inside: $dmg"
+              MOUNT=$(hdiutil attach -nobrowse -readonly "$dmg" | awk '/Volumes/ {print $3; exit}')
+              if [ -z "$MOUNT" ]; then
+                echo "Failed to mount DMG for verification: $dmg"
+                exit 1
+              fi
+              APP_PATH=$(find "$MOUNT" -maxdepth 2 -name "*.app" -print -quit)
+              if [ -z "$APP_PATH" ]; then
+                echo "No .app bundle found in $dmg"
+                hdiutil detach "$MOUNT" || true
+                exit 1
+              fi
+              if ! codesign --verify --deep --strict --verbose=2 "$APP_PATH"; then
+                echo "codesign verification failed for $APP_PATH"
+                hdiutil detach "$MOUNT" || true
+                exit 1
+              fi
+              if [ ! -d "$APP_PATH/Contents/_CodeSignature" ]; then
+                echo "Missing _CodeSignature in $APP_PATH"
+                hdiutil detach "$MOUNT" || true
+                exit 1
+              fi
+              hdiutil detach "$MOUNT"
+            done
+          fi
+
       - name: Sign macOS DMG (Developer ID)
         if: runner.os == 'macOS'
         shell: bash
@@ -477,6 +512,40 @@ jobs:
             hdiutil convert "$RW_DMG" -format UDZO -o "$dmg" -ov
             rm -f "$RW_DMG"
           done
+
+      - name: Verify DMG contains signed app
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_DIR="src-tauri/target/x86_64-apple-darwin/release/bundle/dmg"
+          if [ -d "$DMG_DIR" ]; then
+            for dmg in "$DMG_DIR"/*.dmg; do
+              [ -f "$dmg" ] || continue
+              echo "Verifying app inside: $dmg"
+              MOUNT=$(hdiutil attach -nobrowse -readonly "$dmg" | awk '/Volumes/ {print $3; exit}')
+              if [ -z "$MOUNT" ]; then
+                echo "Failed to mount DMG for verification: $dmg"
+                exit 1
+              fi
+              APP_PATH=$(find "$MOUNT" -maxdepth 2 -name "*.app" -print -quit)
+              if [ -z "$APP_PATH" ]; then
+                echo "No .app bundle found in $dmg"
+                hdiutil detach "$MOUNT" || true
+                exit 1
+              fi
+              if ! codesign --verify --deep --strict --verbose=2 "$APP_PATH"; then
+                echo "codesign verification failed for $APP_PATH"
+                hdiutil detach "$MOUNT" || true
+                exit 1
+              fi
+              if [ ! -d "$APP_PATH/Contents/_CodeSignature" ]; then
+                echo "Missing _CodeSignature in $APP_PATH"
+                hdiutil detach "$MOUNT" || true
+                exit 1
+              fi
+              hdiutil detach "$MOUNT"
+            done
+          fi
 
       - name: Sign macOS DMG (Developer ID)
         shell: bash
