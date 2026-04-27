@@ -254,13 +254,19 @@ jobs:
                  -o -name "*.deb" -o -name "*.AppImage" -o -name "*.rpm" \) \
               -exec cp {} dist/ \; || true
           fi
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            for file in dist/*_aarch64.dmg dist/*_aarch64.app.tar.gz; do
+              [ -f "$file" ] || continue
+              mv "$file" "${file/_aarch64/_arm64}"
+            done
+          fi
           CLI_ROOT="target/${{ matrix.target }}/release"
           if [ "${{ runner.os }}" = "Linux" ] && [ -f "$CLI_ROOT/devopster" ]; then
             tar -czf dist/devopster-cli-linux-x86_64.tar.gz -C "$CLI_ROOT" devopster
           elif [ "${{ runner.os }}" = "Windows" ] && [ -f "$CLI_ROOT/devopster.exe" ]; then
             cp "$CLI_ROOT/devopster.exe" dist/devopster-cli-windows-x86_64.exe
           elif [ "${{ runner.os }}" = "macOS" ] && [ -f "$CLI_ROOT/devopster" ]; then
-            tar -czf dist/devopster-cli-macos-aarch64.tar.gz -C "$CLI_ROOT" devopster
+            tar -czf dist/devopster-cli-macos-arm64.tar.gz -C "$CLI_ROOT" devopster
           fi
           ls -la dist || true
 
