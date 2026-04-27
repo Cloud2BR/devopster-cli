@@ -1,7 +1,7 @@
 name: Desktop App (Tauri)
 
 # Builds the DevOpster desktop app for macOS (Intel + Apple Silicon),
-# Windows x64, and Linux x64. Runs on manual dispatch and on `desktop-v*`
+# Windows x64, and Linux x64. Runs on manual dispatch and on `v*`
 # tags. Kept independent from release-artifacts.yml so a Tauri failure
 # never blocks CLI releases.
 
@@ -14,10 +14,10 @@ on:
         type: boolean
         default: false
       release_tag:
-        description: Release tag to create/use when publishing manually (for example desktop-v0.1.0-debug1)
+        description: Release tag to create/use when publishing manually (for example v0.1.0)
         required: false
         type: string
-        default: "desktop-v0.1.0-debug1"
+        default: "v0.1.0"
       build_macos_x64:
         description: Build Intel macOS artifact (macos-13, may queue longer)
         required: false
@@ -25,7 +25,7 @@ on:
         default: false
   push:
     tags:
-      - "desktop-v*"
+      - "v*"
 
 permissions:
   contents: write
@@ -241,7 +241,7 @@ jobs:
           if-no-files-found: warn
 
   build_macos_x64:
-    if: startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.build_macos_x64 == true)
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.build_macos_x64 == true)
     name: macos-x64
     runs-on: macos-13
     steps:
@@ -403,7 +403,7 @@ jobs:
           if-no-files-found: warn
 
   publish:
-    if: (startsWith(github.ref, 'refs/tags/desktop-v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)) && needs.build.result == 'success' && (needs.build_macos_x64.result == 'success' || needs.build_macos_x64.result == 'skipped')
+    if: (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)) && needs.build.result == 'success' && (needs.build_macos_x64.result == 'success' || needs.build_macos_x64.result == 'skipped')
     needs: [build, build_macos_x64]
     runs-on: ubuntu-latest
     steps:
@@ -428,16 +428,7 @@ jobs:
             TAG_NAME="${GITHUB_REF_NAME}"
           fi
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-          echo "release_name=DevOpster Desktop ${TAG_NAME}" >> "$GITHUB_OUTPUT"
-
-      - name: Delete existing release if present
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.release_meta.outputs.tag_name }}"
-          gh release delete "${TAG}" --repo "${{ github.repository }}" --yes 2>/dev/null \
-            && echo "Deleted existing release for ${TAG}." \
-            || echo "No existing release for ${TAG}, creating fresh."
+          echo "release_name=DevOpster ${TAG_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

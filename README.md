@@ -56,7 +56,7 @@ Current downloadable outputs:
 - `devopster-macos-x86_64.tar.gz` (CLI binary + `.icns` icon)
 - `devopster-macos.dmg` (includes CLI files plus native `DevOpster GUI.app` bundle)
 
-Desktop installers are published by the desktop release workflow (`desktop-v*` tags or manual dispatch with publish enabled).
+Desktop installers are published by the desktop release workflow (`v*` tags or manual dispatch with publish enabled).
 Download from GitHub Releases and install using the platform package (`.dmg`, `-setup.exe`/`.msi`, `.deb`/`.AppImage`/`.rpm`).
 
 End-user launch modes now included in artifacts:
@@ -117,7 +117,7 @@ Native installers built in CI by the `Desktop App (Tauri)` workflow:
 | Windows x64       | `.msi` (WiX) + NSIS `-setup.exe` |
 | Linux x64         | `.deb` / `.AppImage`         |
 
-Triggers: manual `workflow_dispatch` or pushing a `desktop-v*` tag. The
+Triggers: manual `workflow_dispatch` or pushing a `v*` tag. The
 desktop pipeline runs independently from the CLI release pipeline so a
 desktop build issue cannot block CLI releases.
 

@@ -1183,10 +1183,13 @@
           var valid = (releases || []).filter(function (x) {
             return !x.draft && Array.isArray(x.assets) && x.assets.length > 0;
           });
-          var desktop = valid.find(function (x) {
+          var unified = valid.find(function (x) {
+            return /^v/i.test(x.tag_name || '');
+          });
+          var legacyDesktop = valid.find(function (x) {
             return /^desktop-v/i.test(x.tag_name || '');
           });
-          return desktop || valid[0];
+          return unified || legacyDesktop || valid[0];
         }
 
         // Prefer a local JSON snapshot generated during Pages deploy.
