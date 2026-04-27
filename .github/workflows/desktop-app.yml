@@ -152,7 +152,7 @@ jobs:
             exit 1
           fi
 
-      - name: Sign macOS app and DMG (Developer ID)
+      - name: Sign macOS app (Developer ID)
         if: runner.os == 'macOS'
         shell: bash
         env:
@@ -172,8 +172,84 @@ jobs:
               codesign --verify --deep --strict --verbose=2 "$app"
             done
           fi
-          if [ -d "$BUNDLE_ROOT/dmg" ]; then
-            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
+
+      - name: Ad-hoc codesign macOS bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
+          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ -n "${APPLE_SIGNING_CERT_B64:-}" ] && [ -n "${APPLE_SIGNING_CERT_PASSWORD:-}" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            echo "Developer ID signing is configured; skipping ad-hoc codesign fallback."
+            exit 0
+          fi
+          # Apple Silicon and modern Intel macOS refuse to launch unsigned
+          # apps with the cryptic "DevOpster.app is damaged" alert. An ad-hoc
+          # signature (sign identity "-") satisfies the loader so the app
+          # runs without users having to run `xattr -cr DevOpster.app`.
+          BUNDLE_ROOT="src-tauri/target/${{ matrix.target }}/release/bundle"
+          if [ -d "$BUNDLE_ROOT/macos" ]; then
+            for app in "$BUNDLE_ROOT/macos"/*.app; do
+              [ -d "$app" ] || continue
+              echo "codesign $app"
+              codesign --force --deep --options runtime --sign - "$app"
+              codesign --verify --deep --strict --verbose=2 "$app" || true
+            done
+          fi
+
+      - name: Repack DMG with signed app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="src-tauri/target/${{ matrix.target }}/release/bundle"
+          APP_DIR="$BUNDLE_ROOT/macos"
+          DMG_DIR="$BUNDLE_ROOT/dmg"
+          if [ ! -d "$APP_DIR" ] || [ ! -d "$DMG_DIR" ]; then
+            echo "No macOS app bundle or DMG directory to repack."
+            exit 0
+          fi
+          APP_PATH=$(ls "$APP_DIR"/*.app 2>/dev/null | head -n 1 || true)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found to repack."
+            exit 0
+          fi
+          APP_NAME=$(basename "$APP_PATH")
+          for dmg in "$DMG_DIR"/*.dmg; do
+            [ -f "$dmg" ] || continue
+            echo "Repacking DMG with signed app: $dmg"
+            RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
+            hdiutil convert "$dmg" -format UDWR -o "$RW_DMG"
+            MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
+            if [ -z "$MOUNT" ]; then
+              echo "Failed to mount writable DMG."
+              rm -f "$RW_DMG"
+              exit 1
+            fi
+            rm -rf "$MOUNT/$APP_NAME"
+            ditto "$APP_PATH" "$MOUNT/$APP_NAME"
+            sync
+            hdiutil detach "$MOUNT"
+            hdiutil convert "$RW_DMG" -format UDZO -o "$dmg" -ov
+            rm -f "$RW_DMG"
+          done
+
+      - name: Sign macOS DMG (Developer ID)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            echo "APPLE_SIGNING_IDENTITY is not set; skipping DMG signing."
+            exit 0
+          fi
+          DMG_DIR="src-tauri/target/${{ matrix.target }}/release/bundle/dmg"
+          if [ -d "$DMG_DIR" ]; then
+            for dmg in "$DMG_DIR"/*.dmg; do
               [ -f "$dmg" ] || continue
               echo "codesign dmg: $dmg"
               codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$dmg"
@@ -205,39 +281,6 @@ jobs:
                 --wait
               xcrun stapler staple "$dmg"
               xcrun stapler validate "$dmg"
-            done
-          fi
-
-      - name: Ad-hoc codesign macOS bundle
-        if: runner.os == 'macOS'
-        shell: bash
-        env:
-          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
-          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          if [ -n "${APPLE_SIGNING_CERT_B64:-}" ] && [ -n "${APPLE_SIGNING_CERT_PASSWORD:-}" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
-            echo "Developer ID signing is configured; skipping ad-hoc codesign fallback."
-            exit 0
-          fi
-          # Apple Silicon and modern Intel macOS refuse to launch unsigned
-          # apps with the cryptic "DevOpster.app is damaged" alert. An ad-hoc
-          # signature (sign identity "-") satisfies the loader so the app
-          # runs without users having to run `xattr -cr DevOpster.app`.
-          BUNDLE_ROOT="src-tauri/target/${{ matrix.target }}/release/bundle"
-          if [ -d "$BUNDLE_ROOT/macos" ]; then
-            for app in "$BUNDLE_ROOT/macos"/*.app; do
-              [ -d "$app" ] || continue
-              echo "codesign $app"
-              codesign --force --deep --options runtime --sign - "$app"
-              codesign --verify --deep --strict --verbose=2 "$app" || true
-            done
-          fi
-          if [ -d "$BUNDLE_ROOT/dmg" ]; then
-            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
-              [ -f "$dmg" ] || continue
-              echo "codesign $dmg"
-              codesign --force --sign - "$dmg" || true
             done
           fi
 
@@ -366,7 +409,7 @@ jobs:
             exit 1
           fi
 
-      - name: Sign macOS app and DMG (Developer ID)
+      - name: Sign macOS app (Developer ID)
         shell: bash
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -384,8 +427,76 @@ jobs:
               codesign --verify --deep --strict --verbose=2 "$app"
             done
           fi
-          if [ -d "$BUNDLE_ROOT/dmg" ]; then
-            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
+
+      - name: Ad-hoc codesign macOS bundle
+        shell: bash
+        env:
+          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
+          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ -n "${APPLE_SIGNING_CERT_B64:-}" ] && [ -n "${APPLE_SIGNING_CERT_PASSWORD:-}" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            echo "Developer ID signing is configured; skipping ad-hoc codesign fallback."
+            exit 0
+          fi
+          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
+          if [ -d "$BUNDLE_ROOT/macos" ]; then
+            for app in "$BUNDLE_ROOT/macos"/*.app; do
+              [ -d "$app" ] || continue
+              codesign --force --deep --options runtime --sign - "$app"
+              codesign --verify --deep --strict --verbose=2 "$app" || true
+            done
+          fi
+
+      - name: Repack DMG with signed app
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
+          APP_DIR="$BUNDLE_ROOT/macos"
+          DMG_DIR="$BUNDLE_ROOT/dmg"
+          if [ ! -d "$APP_DIR" ] || [ ! -d "$DMG_DIR" ]; then
+            echo "No macOS app bundle or DMG directory to repack."
+            exit 0
+          fi
+          APP_PATH=$(ls "$APP_DIR"/*.app 2>/dev/null | head -n 1 || true)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found to repack."
+            exit 0
+          fi
+          APP_NAME=$(basename "$APP_PATH")
+          for dmg in "$DMG_DIR"/*.dmg; do
+            [ -f "$dmg" ] || continue
+            echo "Repacking DMG with signed app: $dmg"
+            RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
+            hdiutil convert "$dmg" -format UDWR -o "$RW_DMG"
+            MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
+            if [ -z "$MOUNT" ]; then
+              echo "Failed to mount writable DMG."
+              rm -f "$RW_DMG"
+              exit 1
+            fi
+            rm -rf "$MOUNT/$APP_NAME"
+            ditto "$APP_PATH" "$MOUNT/$APP_NAME"
+            sync
+            hdiutil detach "$MOUNT"
+            hdiutil convert "$RW_DMG" -format UDZO -o "$dmg" -ov
+            rm -f "$RW_DMG"
+          done
+
+      - name: Sign macOS DMG (Developer ID)
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            echo "APPLE_SIGNING_IDENTITY is not set; skipping DMG signing."
+            exit 0
+          fi
+          DMG_DIR="src-tauri/target/x86_64-apple-darwin/release/bundle/dmg"
+          if [ -d "$DMG_DIR" ]; then
+            for dmg in "$DMG_DIR"/*.dmg; do
               [ -f "$dmg" ] || continue
               codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$dmg"
             done
@@ -414,32 +525,6 @@ jobs:
                 --wait
               xcrun stapler staple "$dmg"
               xcrun stapler validate "$dmg"
-            done
-          fi
-
-      - name: Ad-hoc codesign macOS bundle
-        shell: bash
-        env:
-          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
-          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          if [ -n "${APPLE_SIGNING_CERT_B64:-}" ] && [ -n "${APPLE_SIGNING_CERT_PASSWORD:-}" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
-            echo "Developer ID signing is configured; skipping ad-hoc codesign fallback."
-            exit 0
-          fi
-          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
-          if [ -d "$BUNDLE_ROOT/macos" ]; then
-            for app in "$BUNDLE_ROOT/macos"/*.app; do
-              [ -d "$app" ] || continue
-              codesign --force --deep --options runtime --sign - "$app"
-              codesign --verify --deep --strict --verbose=2 "$app" || true
-            done
-          fi
-          if [ -d "$BUNDLE_ROOT/dmg" ]; then
-            for dmg in "$BUNDLE_ROOT/dmg"/*.dmg; do
-              [ -f "$dmg" ] || continue
-              codesign --force --sign - "$dmg" || true
             done
           fi
 
