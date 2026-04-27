@@ -11,7 +11,7 @@ Usage:
 
 Examples:
   ./install-macos-app.sh
-  ./install-macos-app.sh "$HOME/Downloads/DevOpster_0.1.0_aarch64.dmg"
+  ./install-macos-app.sh "$HOME/Downloads/DevOpster_<version>_<arch>.dmg"
   ./install-macos-app.sh "/Volumes/devopster-cli/DevOpster.app"
   ./install-macos-app.sh "/Volumes/devopster-cli/DevOpster.app" "$HOME/Applications"
 

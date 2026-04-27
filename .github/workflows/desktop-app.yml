@@ -467,9 +467,13 @@ jobs:
             - If macOS blocks opening the downloaded DMG itself, clear quarantine on the DMG and open it:
 
             ```bash
-            DMG_PATH="$HOME/Downloads/DevOpster_0.1.0_aarch64.dmg"
-            xattr -dr com.apple.quarantine "$DMG_PATH"
-            open "$DMG_PATH"
+            DMG_PATH="$(ls -t "$HOME"/Downloads/DevOpster*.dmg 2>/dev/null | head -n 1)"
+            if [ -n "$DMG_PATH" ]; then
+              xattr -dr com.apple.quarantine "$DMG_PATH"
+              open "$DMG_PATH"
+            else
+              echo "No DevOpster DMG found in $HOME/Downloads"
+            fi
             ```
 
             - Install normally: open the DMG and drag `DevOpster.app` into `/Applications`.
