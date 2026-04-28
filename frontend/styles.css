@@ -312,6 +312,41 @@ label.field > span {
   font-weight: 600;
 }
 .cli-drawer-actions { display: flex; gap: 8px; }
+.cli-drawer-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.cli-tab {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.cli-tab:hover { border-color: var(--link); }
+.cli-tab.active {
+  background: var(--link);
+  border-color: var(--link);
+  color: #ffffff;
+}
+.cli-panel { display: none; }
+.cli-panel.active { display: block; }
+.cli-panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.cli-panel-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
 .cli-drawer-toolbar {
   display: flex;
   gap: 8px;
@@ -319,7 +354,49 @@ label.field > span {
   margin-bottom: 8px;
 }
 .cli-drawer-toolbar .input { flex: 1; min-width: 240px; }
-.cli-console { height: 160px; }
+.cli-console { height: 150px; }
+.cli-list {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow: auto;
+}
+.cli-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cli-list-command {
+  font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+  font-size: 0.82rem;
+  color: #cfe2ff;
+  overflow-wrap: anywhere;
+}
+.cli-list-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.cli-list-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.cli-list-btn:hover { border-color: var(--link); }
+.cli-empty {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
 
 body.cli-open .cli-drawer { transform: translateY(0); }
 body.cli-open #view { padding-bottom: 260px; }

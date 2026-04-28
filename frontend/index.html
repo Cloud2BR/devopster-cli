@@ -62,12 +62,34 @@
           <button id="cli-close" class="btn" type="button">Close</button>
         </div>
       </div>
-      <div class="cli-drawer-toolbar">
-        <input id="cli-input" class="input" type="text" placeholder="e.g. repo audit --report-only" autocomplete="off" />
-        <button id="cli-run" class="btn btn-primary" type="button">Run</button>
+      <div class="cli-drawer-tabs" role="tablist">
+        <button class="cli-tab active" data-tab="terminal" role="tab" aria-selected="true">Terminal</button>
+        <button class="cli-tab" data-tab="history" role="tab" aria-selected="false">History</button>
+        <button class="cli-tab" data-tab="saved" role="tab" aria-selected="false">Saved</button>
       </div>
-      <pre id="cli-output" class="console cli-console">Ready.
+      <div class="cli-panel active" data-panel="terminal">
+        <div class="cli-drawer-toolbar">
+          <input id="cli-input" class="input" type="text" placeholder="e.g. repo audit --report-only" autocomplete="off" />
+          <button id="cli-save" class="btn" type="button">Save</button>
+          <button id="cli-run" class="btn btn-primary" type="button">Run</button>
+        </div>
+        <pre id="cli-output" class="console cli-console">Ready.
 </pre>
+      </div>
+      <div class="cli-panel" data-panel="history">
+        <div class="cli-panel-actions">
+          <span class="cli-panel-hint">Click a command to run it again.</span>
+          <button id="cli-history-clear" class="btn" type="button">Clear history</button>
+        </div>
+        <div id="cli-history-list" class="cli-list"></div>
+      </div>
+      <div class="cli-panel" data-panel="saved">
+        <div class="cli-panel-actions">
+          <span class="cli-panel-hint">Pin your go-to commands.</span>
+          <button id="cli-saved-clear" class="btn" type="button">Clear saved</button>
+        </div>
+        <div id="cli-saved-list" class="cli-list"></div>
+      </div>
     </div>
 
     <script type="module" src="app.js"></script>

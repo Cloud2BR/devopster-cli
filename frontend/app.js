@@ -13,14 +13,29 @@ const topbarActions = document.getElementById("topbar-actions");
 const toastEl = document.getElementById("toast");
 const cliDrawer = document.getElementById("cli-drawer");
 const cliInput = document.getElementById("cli-input");
+const cliSave = document.getElementById("cli-save");
 const cliRun = document.getElementById("cli-run");
 const cliClear = document.getElementById("cli-clear");
 const cliClose = document.getElementById("cli-close");
 const cliOutput = document.getElementById("cli-output");
+const cliTabs = document.querySelectorAll(".cli-tab");
+const cliPanels = document.querySelectorAll(".cli-panel");
+const cliHistoryList = document.getElementById("cli-history-list");
+const cliSavedList = document.getElementById("cli-saved-list");
+const cliHistoryClear = document.getElementById("cli-history-clear");
+const cliSavedClear = document.getElementById("cli-saved-clear");
 
 let env = null;
 let currentRoute = "dashboard";
 let consoleBuffer = [];
+let cliHistory = [];
+let cliSaved = [];
+let cliStateLoaded = false;
+
+const HISTORY_LIMIT = 50;
+const HISTORY_KEY = "devopsterCliHistory";
+const SAVED_KEY = "devopsterCliSaved";
+const BUFFER_LIMIT = 3000;
 
 // ───── helpers ─────────────────────────────────────────────────────
 function el(tag, props = {}, children = []) {
@@ -73,17 +88,136 @@ function emptyState(text) {
   return el("div", { class: "empty" }, text);
 }
 
+function trimConsoleBuffer() {
+  if (consoleBuffer.length > BUFFER_LIMIT) {
+    consoleBuffer = consoleBuffer.slice(-BUFFER_LIMIT);
+  }
+}
+
 function renderCliOutput() {
   if (!cliOutput) return;
+  trimConsoleBuffer();
   cliOutput.textContent = consoleBuffer.join("") || "Ready.\n";
   cliOutput.scrollTop = cliOutput.scrollHeight;
+}
+
+function loadCliState() {
+  try {
+    const rawHistory = localStorage.getItem(HISTORY_KEY) || "[]";
+    const rawSaved = localStorage.getItem(SAVED_KEY) || "[]";
+    cliHistory = JSON.parse(rawHistory);
+    cliSaved = JSON.parse(rawSaved);
+    if (!Array.isArray(cliHistory)) cliHistory = [];
+    if (!Array.isArray(cliSaved)) cliSaved = [];
+  } catch (err) {
+    cliHistory = [];
+    cliSaved = [];
+  }
+}
+
+function saveCliState() {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(cliHistory.slice(0, HISTORY_LIMIT)));
+    localStorage.setItem(SAVED_KEY, JSON.stringify(cliSaved));
+  } catch (err) {
+    // ignore persistence errors (private mode, etc.)
+  }
+}
+
+function setCliTab(tab) {
+  cliTabs.forEach((btn) => {
+    const isActive = btn.dataset.tab === tab;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  cliPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.panel === tab);
+  });
+}
+
+function renderCliList(listEl, rows, options) {
+  if (!listEl) return;
+  clear(listEl);
+  if (!rows.length) {
+    listEl.appendChild(el("div", { class: "cli-empty", text: options.empty }));
+    return;
+  }
+  rows.forEach((cmd) => {
+    const row = el("div", { class: "cli-list-item" }, [
+      el("div", { class: "cli-list-command", text: cmd }),
+      el("div", { class: "cli-list-actions" }, options.actions(cmd)),
+    ]);
+    row.addEventListener("dblclick", () => runCliCommand(cmd));
+    listEl.appendChild(row);
+  });
+}
+
+function renderHistory() {
+  renderCliList(cliHistoryList, cliHistory, {
+    empty: "No CLI history yet.",
+    actions: (cmd) => [
+      listBtn("Run", () => runCliCommand(cmd)),
+      listBtn("Save", () => addSaved(cmd)),
+    ],
+  });
+}
+
+function renderSaved() {
+  renderCliList(cliSavedList, cliSaved, {
+    empty: "No saved commands yet.",
+    actions: (cmd) => [
+      listBtn("Run", () => runCliCommand(cmd)),
+      listBtn("Remove", () => removeSaved(cmd)),
+    ],
+  });
+}
+
+function ensureCliState() {
+  if (cliStateLoaded) return;
+  loadCliState();
+  renderHistory();
+  renderSaved();
+  cliStateLoaded = true;
+}
+
+function addHistory(cmd) {
+  if (!cmd) return;
+  if (cliHistory[0] === cmd) return;
+  cliHistory.unshift(cmd);
+  if (cliHistory.length > HISTORY_LIMIT) cliHistory = cliHistory.slice(0, HISTORY_LIMIT);
+  saveCliState();
+  renderHistory();
+}
+
+function addSaved(cmd) {
+  if (!cmd) return;
+  if (cliSaved.includes(cmd)) return;
+  cliSaved.unshift(cmd);
+  saveCliState();
+  renderSaved();
+  toast("Saved command.", "ok");
+}
+
+function removeSaved(cmd) {
+  cliSaved = cliSaved.filter((c) => c !== cmd);
+  saveCliState();
+  renderSaved();
+}
+
+function listBtn(label, onClick) {
+  const btn = el("button", { class: "cli-list-btn", text: label });
+  btn.addEventListener("click", onClick);
+  return btn;
 }
 
 function setCliOpen(open) {
   document.body.classList.toggle("cli-open", open);
   if (cliDrawer) cliDrawer.setAttribute("aria-hidden", open ? "false" : "true");
   if (open && cliInput) cliInput.focus();
-  if (open) renderCliOutput();
+  if (open) {
+    ensureCliState();
+    renderCliOutput();
+  }
 }
 
 function toggleCliDrawer(force) {
@@ -191,7 +325,7 @@ async function renderDiagnostics() {
 
     setActions([
       actionBtn("Re-run", renderDiagnostics),
-      actionBtn("Open CLI mode", () => setCliOpen(true)),
+      actionBtn("Open CLI mode", () => { setCliTab("terminal"); setCliOpen(true); }),
     ]);
   } catch (err) {
     clear(view);
@@ -419,7 +553,11 @@ async function renderSetup() {
     el("h3", { text: "Run guided setup" }),
     el("p", { text: "Prompts will appear in the streamed output. Setup configures providers and writes devopster-config.yaml." }),
     el("div", { style: "margin-top:12px" }, [
-      btn("Start setup", "btn-primary", () => navigate("console") || streamCmd(["setup"], "Setup")),
+      btn("Start setup", "btn-primary", () => {
+        setCliTab("terminal");
+        setCliOpen(true);
+        runCliCommand("setup");
+      }),
     ]),
   ]));
 }
@@ -431,8 +569,9 @@ async function renderConfig() {
   view.appendChild(loading("Reading config…"));
 
   let text = "";
-  try { text = await invoke("read_config", { path: env?.config_path || "devopster-config.yaml" }); }
-  catch (err) {
+  try {
+    text = await invoke("read_config", { path: env?.config_path || "devopster-config.yaml" });
+  } catch (err) {
     text = `# Config not yet present.\n# Generate one from the Setup screen, or paste a starter template here and Save.\n`;
   }
 
@@ -461,12 +600,14 @@ async function renderConsole() {
   clear(view);
   view.appendChild(el("div", { class: "card" }, [
     el("h3", { text: "CLI Mode" }),
-    el("p", { text: "The CLI panel is always available at the bottom of the app. Use it to run any allow-listed devopster command." }),
+    el("p", { text: "The CLI panel is always available at the bottom of the app. Use Terminal, History, and Saved tabs to run commands fast." }),
     el("div", { style: "margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" }, [
-      btn("Open CLI panel", "btn-primary", () => setCliOpen(true)),
+      btn("Open CLI panel", "btn-primary", () => { setCliTab("terminal"); setCliOpen(true); }),
+      btn("Open history", "btn", () => { setCliTab("history"); setCliOpen(true); }),
       btn("Clear output", "btn", () => { consoleBuffer = []; renderCliOutput(); }),
     ]),
   ]));
+  setCliTab("terminal");
   setCliOpen(true);
 }
 
@@ -494,15 +635,17 @@ async function streamCmd(args, label) {
   return await invoke("stream_devopster", { args });
 }
 
-async function runCliFromDrawer() {
-  const raw = (cliInput?.value || "").trim();
-  if (!raw) return;
-  const args = parseArgs(raw);
+async function runCliCommand(raw) {
+  const cmd = raw.trim();
+  if (!cmd) return;
+  addHistory(cmd);
+  if (cliInput) cliInput.value = cmd;
+  const args = parseArgs(cmd);
   consoleBuffer.push(`\n$ devopster ${args.join(" ")}\n`);
   renderCliOutput();
   if (cliRun) cliRun.disabled = true;
   try {
-    const code = await streamCmd(args, raw);
+    const code = await streamCmd(args, cmd);
     consoleBuffer.push(`\n[exit ${code}]\n`);
   } catch (err) {
     consoleBuffer.push(`\n[error] ${err}\n`);
@@ -512,13 +655,41 @@ async function runCliFromDrawer() {
   }
 }
 
+async function runCliFromDrawer() {
+  const raw = (cliInput?.value || "").trim();
+  if (!raw) return;
+  runCliCommand(raw);
+}
+
 if (cliRun) cliRun.addEventListener("click", runCliFromDrawer);
 if (cliInput) cliInput.addEventListener("keydown", (e) => { if (e.key === "Enter") runCliFromDrawer(); });
 if (cliClear) cliClear.addEventListener("click", () => { consoleBuffer = []; renderCliOutput(); });
 if (cliClose) cliClose.addEventListener("click", () => setCliOpen(false));
+if (cliSave) cliSave.addEventListener("click", () => {
+  const raw = (cliInput?.value || "").trim();
+  if (!raw) { toast("Enter a command to save.", "err"); return; }
+  addSaved(raw);
+});
+if (cliHistoryClear) cliHistoryClear.addEventListener("click", () => {
+  cliHistory = [];
+  saveCliState();
+  renderHistory();
+});
+if (cliSavedClear) cliSavedClear.addEventListener("click", () => {
+  cliSaved = [];
+  saveCliState();
+  renderSaved();
+});
+cliTabs.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setCliTab(btn.dataset.tab);
+    setCliOpen(true);
+  });
+});
 
 // ───── boot ───────────────────────────────────────────────────────
 (async function boot() {
+  ensureCliState();
   try {
     env = await invoke("env_info");
   } catch (err) {
