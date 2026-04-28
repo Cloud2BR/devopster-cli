@@ -1,9 +1,6 @@
-name: Build Legacy CLI Artifacts (No Release Publish)
+name: CLI Toolkit (Manual, No Release Publish)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:

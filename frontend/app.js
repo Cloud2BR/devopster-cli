@@ -114,7 +114,7 @@ async function renderDashboard() {
       actionBtn("Open inventory", () => navigate("inventory")),
       actionBtn("Audit repos", () => navigate("audit")),
       actionBtn("Edit config", () => navigate("config")),
-      actionBtn("Open console", () => navigate("console")),
+      actionBtn("Open CLI mode", () => navigate("console")),
     ]),
   ]));
 
@@ -163,7 +163,7 @@ async function renderDiagnostics() {
 
     setActions([
       actionBtn("Re-run", renderDiagnostics),
-      actionBtn("Open console", () => navigate("console")),
+      actionBtn("Open CLI mode", () => navigate("console")),
     ]);
   } catch (err) {
     clear(view);
@@ -429,7 +429,7 @@ async function renderConfig() {
 
 // ───── CONSOLE (live streaming arbitrary commands) ────────────────
 async function renderConsole() {
-  setHeader("Console", "Run any allow-listed devopster subcommand with live output.");
+  setHeader("CLI Mode", "Run any allow-listed devopster subcommand with live output.");
   clear(view);
 
   const input = el("input", {
