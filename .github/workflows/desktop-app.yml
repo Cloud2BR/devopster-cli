@@ -385,13 +385,13 @@ jobs:
           fi
           CLI_ROOT="target/${{ matrix.target }}/release"
           if [ "${{ runner.os }}" = "Linux" ] && [ -f "$CLI_ROOT/devopster" ]; then
-            tar -czf dist/devopster-cli-linux-x86_64.tar.gz -C "$CLI_ROOT" devopster
+            tar -czf dist/devopster-linux-x86_64.tar.gz -C "$CLI_ROOT" devopster
           elif [ "${{ runner.os }}" = "Windows" ] && [ -f "$CLI_ROOT/devopster.exe" ]; then
-            cp "$CLI_ROOT/devopster.exe" dist/devopster-cli-windows-x86_64.exe
+            cp "$CLI_ROOT/devopster.exe" dist/devopster-windows-x86_64.exe
           elif [ "${{ matrix.target }}" = "aarch64-apple-darwin" ] && [ -f "$CLI_ROOT/devopster" ]; then
-            tar -czf dist/devopster-cli-macos-arm64.tar.gz -C "$CLI_ROOT" devopster
+            tar -czf dist/devopster-macos-arm64.tar.gz -C "$CLI_ROOT" devopster
           elif [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] && [ -f "$CLI_ROOT/devopster" ]; then
-            tar -czf dist/devopster-cli-macos-x86_64.tar.gz -C "$CLI_ROOT" devopster
+            tar -czf dist/devopster-macos-x86_64.tar.gz -C "$CLI_ROOT" devopster
           fi
           ls -la dist || true
 
@@ -447,14 +447,14 @@ jobs:
             |---|---|---|
             | **macOS** | `*.dmg` | Recommended. Drag `DevOpster.app` to `/Applications` or `~/Applications` |
             | **macOS** | `*.app.tar.gz` | Advanced/manual extraction |
-            | **macOS CLI** | `devopster-cli-macos-*.tar.gz` | Extract and run `./devopster` |
+            | **macOS CLI** | `devopster-macos-*.tar.gz` | Extract and run `./devopster` |
             | **Windows** | `*-setup.exe` | Recommended NSIS installer |
             | **Windows** | `*.msi` | MSI deployment/install option |
-            | **Windows CLI** | `devopster-cli-windows-x86_64.exe` | Run directly from terminal/PowerShell |
+            | **Windows CLI** | `devopster-windows-x86_64.exe` | Run directly from terminal/PowerShell |
             | **Linux** | `*.AppImage` | `chmod +x DevOpster*.AppImage && ./DevOpster*.AppImage` |
             | **Linux** | `*.deb` | `sudo apt install ./DevOpster*.deb` |
             | **Linux** | `*.rpm` | `sudo rpm -i DevOpster*.rpm` |
-            | **Linux CLI** | `devopster-cli-linux-x86_64.tar.gz` | Extract and run `./devopster` |
+            | **Linux CLI** | `devopster-linux-x86_64.tar.gz` | Extract and run `./devopster` |
 
             ### macOS trust and verification
 

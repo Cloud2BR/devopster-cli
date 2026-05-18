@@ -70,9 +70,9 @@ Releases are built by the **Unified App Release (CLI + GUI)** workflow.
 
 Current release outputs include:
 
-- macOS: `DevOpster_<version>_arm64.dmg`, `DevOpster_<version>_arm64.app.tar.gz`, `devopster-cli-macos-arm64.tar.gz` (plus Intel variants when enabled)
-- Windows: `DevOpster_<version>_x64-setup.exe`, `DevOpster_<version>_x64_en-US.msi`, `devopster-cli-windows-x86_64.exe`
-- Linux: `DevOpster_<version>_amd64.deb`, `DevOpster_<version>_amd64.AppImage`, `DevOpster-<version>-1.x86_64.rpm`, `devopster-cli-linux-x86_64.tar.gz`
+- macOS: `DevOpster_<version>_arm64.dmg`, `DevOpster_<version>_arm64.app.tar.gz`, `devopster-macos-arm64.tar.gz` (plus Intel variants when enabled)
+- Windows: `DevOpster_<version>_x64-setup.exe`, `DevOpster_<version>_x64_en-US.msi`, `devopster-windows-x86_64.exe`
+- Linux: `DevOpster_<version>_amd64.deb`, `DevOpster_<version>_amd64.AppImage`, `DevOpster-<version>-1.x86_64.rpm`, `devopster-linux-x86_64.tar.gz`
 
 DevOpster publishes one unified release stream (`v*` tags or manual dispatch with publish enabled) that includes both GUI installers and standalone CLI artifacts.
 Download from GitHub Releases and choose either the desktop installer (`.dmg`, `-setup.exe`/`.msi`, `.deb`/`.AppImage`/`.rpm`) or the standalone CLI artifact for your platform.
@@ -93,8 +93,8 @@ Documentation and install guides are deployed to GitHub Pages with a dual-enviro
 
 | Branch | Environment | URL |
 |--------|-------------|-----|
-| `main` | **Production** | https://cloud2br.github.io/devopster-cli/ |
-| `test` | **Testing** | https://cloud2br.github.io/devopster-cli/test/ |
+| `main` | **Production** | https://cloud2br.github.io/devopster/ |
+| `test` | **Testing** | https://cloud2br.github.io/devopster/test/ |
 
 **Deployment Flow:**
 - **Main branch** (production): Merged, tested, production-ready documentation. Deployed to root.

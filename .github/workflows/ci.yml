@@ -56,14 +56,14 @@ jobs:
         run: |
           docker buildx build \
             --target devcontainer \
-            --tag devopster-cli-devcontainer \
+            --tag devopster-devcontainer \
             --cache-from type=gha,scope=devcontainer \
             --cache-to type=gha,mode=max,scope=devcontainer \
             --load \
             .
       - name: Run build in container
-        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo build --locked
+        run: docker run --rm -w /workspaces/devopster devopster-devcontainer cargo build --locked
       - name: Run tests in container
-        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo test --locked
+        run: docker run --rm -w /workspaces/devopster devopster-devcontainer cargo test --locked
       - name: Run lint in container
-        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo clippy --all-targets --all-features -- -D warnings
+        run: docker run --rm -w /workspaces/devopster devopster-devcontainer cargo clippy --all-targets --all-features -- -D warnings

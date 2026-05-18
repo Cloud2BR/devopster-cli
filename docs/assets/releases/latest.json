@@ -8,32 +8,32 @@
     {
       "name": "DevOpster_0.1.0_aarch64.dmg",
       "size": 9011724,
-      "browser_download_url": "https://github.com/Cloud2BR/devopster-cli/releases/download/desktop-v0.1.0/DevOpster_0.1.0_aarch64.dmg"
+      "browser_download_url": "https://github.com/Cloud2BR/devopster/releases/download/desktop-v0.1.0/DevOpster_0.1.0_aarch64.dmg"
     },
     {
       "name": "DevOpster_0.1.0_x64-setup.exe",
       "size": 4718592,
-      "browser_download_url": "https://github.com/Cloud2BR/devopster-cli/releases/download/desktop-v0.1.0/DevOpster_0.1.0_x64-setup.exe"
+      "browser_download_url": "https://github.com/Cloud2BR/devopster/releases/download/desktop-v0.1.0/DevOpster_0.1.0_x64-setup.exe"
     },
     {
       "name": "DevOpster_0.1.0_x64_en-US.msi",
       "size": 6815744,
-      "browser_download_url": "https://github.com/Cloud2BR/devopster-cli/releases/download/desktop-v0.1.0/DevOpster_0.1.0_x64_en-US.msi"
+      "browser_download_url": "https://github.com/Cloud2BR/devopster/releases/download/desktop-v0.1.0/DevOpster_0.1.0_x64_en-US.msi"
     },
     {
       "name": "DevOpster_0.1.0_amd64.AppImage",
       "size": 79913984,
-      "browser_download_url": "https://github.com/Cloud2BR/devopster-cli/releases/download/desktop-v0.1.0/DevOpster_0.1.0_amd64.AppImage"
+      "browser_download_url": "https://github.com/Cloud2BR/devopster/releases/download/desktop-v0.1.0/DevOpster_0.1.0_amd64.AppImage"
     },
     {
       "name": "DevOpster_0.1.0_amd64.deb",
       "size": 7549952,
-      "browser_download_url": "https://github.com/Cloud2BR/devopster-cli/releases/download/desktop-v0.1.0/DevOpster_0.1.0_amd64.deb"
+      "browser_download_url": "https://github.com/Cloud2BR/devopster/releases/download/desktop-v0.1.0/DevOpster_0.1.0_amd64.deb"
     },
     {
       "name": "DevOpster-0.1.0-1.x86_64.rpm",
       "size": 7549952,
-      "browser_download_url": "https://github.com/Cloud2BR/devopster-cli/releases/download/desktop-v0.1.0/DevOpster-0.1.0-1.x86_64.rpm"
+      "browser_download_url": "https://github.com/Cloud2BR/devopster/releases/download/desktop-v0.1.0/DevOpster-0.1.0-1.x86_64.rpm"
     }
   ]
 }

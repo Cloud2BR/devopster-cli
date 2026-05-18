@@ -38,7 +38,7 @@ RUN ARCH=$(dpkg --print-architecture) \
     && dpkg -i /tmp/glab.deb \
     && rm /tmp/glab.deb
 
-WORKDIR /workspaces/devopster-cli
+WORKDIR /workspaces/devopster
 COPY . .
 RUN cargo fetch
 

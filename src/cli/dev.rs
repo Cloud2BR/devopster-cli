@@ -10,7 +10,7 @@ pub struct DevCommand {
     pub action: DevAction,
 
     /// Docker image tag used for containerized developer tasks
-    #[arg(long, default_value = "devopster-cli-dev")]
+    #[arg(long, default_value = "devopster-dev")]
     pub image: String,
 
     /// Skip rebuilding the container image before executing task(s)

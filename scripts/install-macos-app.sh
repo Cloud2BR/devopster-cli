@@ -12,8 +12,8 @@ Usage:
 Examples:
   ./install-macos-app.sh
   ./install-macos-app.sh "$HOME/Downloads/DevOpster_<version>_<arch>.dmg"
-  ./install-macos-app.sh "/Volumes/devopster-cli/DevOpster.app"
-  ./install-macos-app.sh "/Volumes/devopster-cli/DevOpster.app" "$HOME/Applications"
+  ./install-macos-app.sh "/Volumes/devopster/DevOpster.app"
+  ./install-macos-app.sh "/Volumes/devopster/DevOpster.app" "$HOME/Applications"
 
 Behavior:
   - SOURCE_APP_PATH can be a mounted DevOpster.app path or a .dmg file.

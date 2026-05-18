@@ -189,7 +189,7 @@ async fn run_interactive_launcher(config_path: &str) -> Result<()> {
             0 => {
                 run_command(
                     Commands::DevEnv(dev_env::DevEnvCommand {
-                        image: "devopster-cli-dev".to_string(),
+                        image: "devopster-dev".to_string(),
                         no_build: false,
                         no_onboarding: false,
                     }),
@@ -201,7 +201,7 @@ async fn run_interactive_launcher(config_path: &str) -> Result<()> {
                 run_command(
                     Commands::Dev(dev::DevCommand {
                         action: dev::DevAction::Verify,
-                        image: "devopster-cli-dev".to_string(),
+                        image: "devopster-dev".to_string(),
                         no_build: false,
                     }),
                     config_path,

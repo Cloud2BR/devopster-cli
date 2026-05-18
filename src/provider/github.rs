@@ -533,7 +533,7 @@ fn build_client(config: &GitHubConfig) -> Result<Client> {
 
     Client::builder()
         .default_headers(headers)
-        .user_agent("devopster-cli")
+        .user_agent("devopster")
         .build()
         .context("failed to build GitHub HTTP client")
 }
