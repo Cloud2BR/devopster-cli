@@ -40,7 +40,7 @@
     "longDescription": "Cross-platform desktop app for repository governance across GitHub, Azure DevOps, and GitLab.",
     "copyright": "Copyright (c) 2026 Cloud2BR",
     "publisher": "Cloud2BR",
-    "homepage": "https://cloud2br.github.io/devopster-cli/",
+    "homepage": "https://cloud2br.github.io/devopster/",
     "externalBin": ["binaries/devopster"],
     "macOS": {
       "minimumSystemVersion": "10.15",

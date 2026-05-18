@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE_DEVCONTAINER="devopster-cli-devcontainer"
-IMAGE_DEV="devopster-cli-dev"
-WORKDIR="/workspaces/devopster-cli"
+IMAGE_DEVCONTAINER="devopster-devcontainer"
+IMAGE_DEV="devopster-dev"
+WORKDIR="/workspaces/devopster"
 
 usage() {
   cat <<'EOF'

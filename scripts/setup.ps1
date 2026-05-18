@@ -114,7 +114,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # ── Build image and open shell ────────────────────────────────────────────────
 Write-Info "Building devopster container image..."
-docker build --target dev -t devopster-cli-dev .
+docker build --target dev -t devopster-dev .
 
 $openFile = Join-Path $PWD.Path '.devopster_open_url'
 $browserJob = Start-BrowserWatcher -Path $openFile
@@ -146,9 +146,9 @@ Write-Success 'Starting Docker runtime.'
 try {
     $dockerArgs += @(
         '-v', "${env:USERPROFILE}\.config\devopster:/root/.config/devopster",
-        '-v', "${PWD}:/workspaces/devopster-cli",
-        '-w', '/workspaces/devopster-cli',
-        'devopster-cli-dev'
+        '-v', "${PWD}:/workspaces/devopster",
+        '-w', '/workspaces/devopster',
+        'devopster-dev'
     ) + $dockerCommand
 
     & docker @dockerArgs

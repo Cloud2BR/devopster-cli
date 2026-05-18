@@ -218,7 +218,7 @@ fn build_client(config: &AzureDevOpsConfig) -> Result<Client> {
 
     Client::builder()
         .default_headers(headers)
-        .user_agent("devopster-cli")
+        .user_agent("devopster")
         .build()
         .context("failed to build Azure DevOps HTTP client")
 }

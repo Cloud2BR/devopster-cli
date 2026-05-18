@@ -31,11 +31,12 @@ by `tauri.conf.json`.
 
 ## Build the sidecar
 
+
 The desktop app expects a `devopster` binary alongside it. For local dev, build
 the CLI from the workspace root:
 
 ```bash
-cargo build -p devopster-cli --release
+cargo build -p devopster --release
 ```
 
 Then copy it where Tauri expects the sidecar (per target triple):

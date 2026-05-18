@@ -1,10 +1,10 @@
 [package]
-name = "devopster-cli"
+name = "devopster"
 version = "0.1.0"
 edition = "2021"
 description = "Cross-platform GitOps CLI for managing organization repositories across GitHub, Azure DevOps, and GitLab."
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/MicrosoftCloudEssentials-LearningHub/devopster-cli"
+repository = "https://github.com/Cloud2BR/devopster"
 rust-version = "1.85"
 
 [[bin]]

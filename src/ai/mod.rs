@@ -45,7 +45,7 @@ struct ChatChoice {
 
 fn make_client() -> Result<Client> {
     Client::builder()
-        .user_agent("devopster-cli/0.1")
+        .user_agent("devopster/0.1")
         .build()
         .context("failed to build HTTP client")
 }
@@ -57,8 +57,8 @@ async fn copilot_token(github_token: &str) -> Option<String> {
     let resp = client
         .get(TOKEN_EXCHANGE_URL)
         .header("Authorization", format!("token {github_token}"))
-        .header("Editor-Version", "devopster-cli/0.1")
-        .header("Editor-Plugin-Version", "devopster-cli/0.1")
+        .header("Editor-Version", "devopster/0.1")
+        .header("Editor-Plugin-Version", "devopster/0.1")
         .send()
         .await
         .ok()?;
@@ -77,7 +77,7 @@ async fn complete(token: &str, system: &str, user: &str) -> Result<String> {
     let resp = client
         .post(COMPLETIONS_URL)
         .header("Authorization", format!("Bearer {token}"))
-        .header("Copilot-Integration-Id", "devopster-cli")
+        .header("Copilot-Integration-Id", "devopster")
         .json(&ChatRequest {
             model: "gpt-4o".into(),
             messages: vec![

@@ -1,4 +1,4 @@
-# Standalone package (not part of the root devopster-cli workspace).
+# Standalone package (not part of the root devopster workspace).
 # Building this app does not require building the CLI crate as a workspace member;
 # the CLI is supplied as a sidecar binary at runtime.
 [workspace]
@@ -9,7 +9,7 @@ version = "0.1.0"
 edition = "2021"
 description = "DevOpster desktop application (Tauri shell around the devopster CLI)."
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/Cloud2BR/devopster-cli"
+repository = "https://github.com/Cloud2BR/devopster"
 rust-version = "1.85"
 
 [lib]

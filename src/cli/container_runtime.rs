@@ -35,7 +35,7 @@ pub fn build_dev_image(image: &str) -> Result<()> {
 pub fn run_in_dev_container(image: &str, command: &str, interactive: bool) -> Result<()> {
     let current_dir = env::current_dir().context("failed to read current directory")?;
     let current_dir = current_dir.to_string_lossy().to_string();
-    let container_workspace = "/workspaces/devopster-cli";
+    let container_workspace = "/workspaces/devopster";
     let home = env::var("HOME")
         .or_else(|_| env::var("USERPROFILE"))
         .context("could not resolve HOME/USERPROFILE for config mount")?;

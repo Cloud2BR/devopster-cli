@@ -13,6 +13,7 @@ Thumbs.db
 # Editor and local workspace files
 .idea/
 .fleet/
+.vscode/
 
 # Container and temporary files
 *.tmp

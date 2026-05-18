@@ -6,22 +6,22 @@ This document outlines the deployment strategy for DevOpster, using GitHub Pages
 
 | Branch | Environment | Purpose | URL |
 |--------|-------------|---------|-----|
-| `main` | **Production** | Stable, production-ready release | `https://cloud2br.github.io/devopster-cli/` |
-| `test` | **Testing** | Pre-release, testing, and staging | `https://cloud2br.github.io/devopster-cli/test/` |
+| `main` | **Production** | Stable, production-ready release | `https://cloud2br.github.io/devopster/` |
+| `test` | **Testing** | Pre-release, testing, and staging | `https://cloud2br.github.io/devopster/test/` |
 
 ## Deployment Flow
 
 ### Main Branch (Production)
 - **Trigger**: Push to `main` branch
 - **Deployment Target**: Root of GitHub Pages
-- **URL**: `https://cloud2br.github.io/devopster-cli/`
+- **URL**: `https://cloud2br.github.io/devopster/`
 - **Use Case**: Production-ready releases, stable documentation, and validated features
 - **Review**: Requires Pull Request review before merge to main
 
 ### Test Branch (Testing)
 - **Trigger**: Push to `test` branch
 - **Deployment Target**: `/test/` subdirectory of GitHub Pages
-- **URL**: `https://cloud2br.github.io/devopster-cli/test/`
+- **URL**: `https://cloud2br.github.io/devopster/test/`
 - **Use Case**: Pre-release testing, experimental features, and staging validations
 - **Review**: Can accept direct pushes or PRs for rapid iteration
 

@@ -12,7 +12,6 @@ on:
       - "src-tauri/**"
       - "frontend/**"
       - "Dockerfile"
-      - ".github/workflows/ci.yml"
   pull_request:
     paths:
       - "Cargo.toml"
@@ -21,7 +20,9 @@ on:
       - "src-tauri/**"
       - "frontend/**"
       - "Dockerfile"
-      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: '30 3 * * *'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -29,7 +30,7 @@ concurrency:
 
 jobs:
   quick-rust-check:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.ref_name == 'test'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +46,7 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
 
   container-preflight:
-    if: github.event_name != 'pull_request'
+    if: (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,14 +56,14 @@ jobs:
         run: |
           docker buildx build \
             --target devcontainer \
-            --tag devopster-cli-devcontainer \
+            --tag devopster-devcontainer \
             --cache-from type=gha,scope=devcontainer \
             --cache-to type=gha,mode=max,scope=devcontainer \
             --load \
             .
       - name: Run build in container
-        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo build --locked
+        run: docker run --rm -w /workspaces/devopster devopster-devcontainer cargo build --locked
       - name: Run tests in container
-        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo test --locked
+        run: docker run --rm -w /workspaces/devopster devopster-devcontainer cargo test --locked
       - name: Run lint in container
-        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo clippy --all-targets --all-features -- -D warnings
+        run: docker run --rm -w /workspaces/devopster devopster-devcontainer cargo clippy --all-targets --all-features -- -D warnings

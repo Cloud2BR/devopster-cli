@@ -1,5 +1,5 @@
 {
-  "name": "devopster-cli",
+  "name": "devopster",
   "build": {
     "dockerfile": "../Dockerfile",
     "target": "devcontainer",

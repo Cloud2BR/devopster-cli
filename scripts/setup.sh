@@ -93,7 +93,7 @@ success "Docker ready: $(docker --version)"
 
 # ── Build image ──────────────────────────────────────────────────────────────
 info "Building devopster container image..."
-docker build --target dev -t devopster-cli-dev .
+docker build --target dev -t devopster-dev .
 
 # ── Host browser proxy ───────────────────────────────────────────────────────
 # devopster writes a URL to .devopster_open_url (inside the mounted workspace)
@@ -146,7 +146,7 @@ fi
 success "Starting Docker runtime — browser links will still open on the host when needed."
 docker "${docker_args[@]}" \
     -v "$HOME/.config/devopster:/root/.config/devopster" \
-    -v "$(pwd):/workspaces/devopster-cli" \
-    -w /workspaces/devopster-cli \
-    devopster-cli-dev \
+    -v "$(pwd):/workspaces/devopster" \
+    -w /workspaces/devopster \
+    devopster-dev \
     "${docker_command[@]}"

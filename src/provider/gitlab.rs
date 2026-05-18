@@ -347,7 +347,7 @@ fn build_client(config: &GitLabConfig) -> Result<Client> {
 
     Client::builder()
         .default_headers(headers)
-        .user_agent("devopster-cli")
+        .user_agent("devopster")
         .build()
         .context("failed to build GitLab HTTP client")
 }

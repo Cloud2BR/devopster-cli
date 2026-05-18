@@ -28,9 +28,11 @@ jobs:
 
           # ── Commits ──
           COMMITS=$(git log --pretty=format:"- %s" "${BASE_SHA}..${HEAD_SHA}" 2>/dev/null || echo "- (unable to read commits)")
-          echo "commits<<EOF_COMMITS" >> "$GITHUB_OUTPUT"
-          echo "$COMMITS" >> "$GITHUB_OUTPUT"
-          echo "EOF_COMMITS" >> "$GITHUB_OUTPUT"
+          {
+            echo "commits<<EOF_COMMITS"
+            echo "$COMMITS"
+            echo "EOF_COMMITS"
+          } >> "$GITHUB_OUTPUT"
 
           # ── Diff stat ──
           DIFFSTAT=$(git diff --stat "${BASE_SHA}..${HEAD_SHA}" 2>/dev/null | tail -1 || echo "")
@@ -49,7 +51,7 @@ jobs:
               DIRS=$(echo "$DIR_FILES" | sed 's|/.*||' | sort -u)
               while IFS= read -r dir; do
                 [ -z "$dir" ] && continue
-                COUNT=$(echo "$DIR_FILES" | grep "^${dir}/" | wc -l | tr -d ' ')
+                COUNT=$(echo "$DIR_FILES" | grep -c "^${dir}/" | tr -d ' ')
                 NAMES=$(echo "$DIR_FILES" | grep "^${dir}/" | sed "s|^${dir}/||" | head -8 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g')
                 FILE_SUMMARY="${FILE_SUMMARY}- \`${dir}/\`: ${COUNT} file(s) — ${NAMES}"$'\n'
               done <<< "$DIRS"
@@ -65,9 +67,11 @@ jobs:
             TOTAL=$(echo "$FILES" | wc -l | tr -d ' ')
             FILE_SUMMARY="${FILE_SUMMARY}- **Total:** ${TOTAL} file(s)"
           fi
-          echo "files<<EOF_FILES" >> "$GITHUB_OUTPUT"
-          echo "$FILE_SUMMARY" >> "$GITHUB_OUTPUT"
-          echo "EOF_FILES" >> "$GITHUB_OUTPUT"
+          {
+            echo "files<<EOF_FILES"
+            echo "$FILE_SUMMARY"
+            echo "EOF_FILES"
+          } >> "$GITHUB_OUTPUT"
 
           # ── Linked issues ──
           ISSUES=$(git log --pretty=format:"%s %b" "${BASE_SHA}..${HEAD_SHA}" 2>/dev/null \
@@ -77,9 +81,11 @@ jobs:
 
           # ── Compact diff for AI (truncated to 12000 chars to fit context) ──
           DIFF=$(git diff "${BASE_SHA}..${HEAD_SHA}" -- . ':!package-lock.json' ':!*.svg' 2>/dev/null | head -c 12000 || echo "")
-          echo "diff<<EOF_DIFF" >> "$GITHUB_OUTPUT"
-          echo "$DIFF" >> "$GITHUB_OUTPUT"
-          echo "EOF_DIFF" >> "$GITHUB_OUTPUT"
+          {
+            echo "diff<<EOF_DIFF"
+            echo "$DIFF"
+            echo "EOF_DIFF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Generate AI summary
         id: ai
@@ -287,6 +293,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > pr_body.md <<'EOF_PR_BODY'
+          ${{ steps.ai.outputs.body }}
+          EOF_PR_BODY
           gh pr edit "${{ github.event.pull_request.number }}" \
             --repo "${{ github.repository }}" \
-            --body "${{ steps.ai.outputs.body }}"
+            --body-file pr_body.md

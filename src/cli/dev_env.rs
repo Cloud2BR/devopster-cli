@@ -7,7 +7,7 @@ use crate::ui;
 #[derive(Debug, Args)]
 pub struct DevEnvCommand {
     /// Docker image tag used for the local developer container
-    #[arg(long, default_value = "devopster-cli-dev")]
+    #[arg(long, default_value = "devopster-dev")]
     pub image: String,
 
     /// Skip rebuilding the container image before launch
