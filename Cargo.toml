@@ -1,5 +1,5 @@
 [package]
-name = "devopster-cli"
+name = "devopster"
 version = "0.1.0"
 edition = "2021"
 description = "Cross-platform GitOps CLI for managing organization repositories across GitHub, Azure DevOps, and GitLab."

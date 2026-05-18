@@ -181,7 +181,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "devopster-cli"
+name = "devopster"
 version = "0.1.0"
 dependencies = [
  "anyhow",
