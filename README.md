@@ -42,6 +42,14 @@ Last updated: 2026-04-24
 
 > This project is designed to run inside a container. Host-level development dependencies are intentionally minimal: install Docker once on the host, then run everything else in containers.
 
+Container build source of truth:
+
+- `Dockerfile` is the single image definition used by:
+  - VS Code Dev Containers (`devcontainer` target)
+  - local `devopster dev-env` / `./scripts/setup.sh` workflows (`dev` target)
+  - CI preflight checks in GitHub Actions
+- Native desktop release packaging remains on OS-native GitHub runners in the unified release workflow.
+
 ## Release Automation
 
 Releases are built by the **Unified App Release (CLI + GUI)** workflow.
@@ -122,16 +130,20 @@ Each release bundles both interfaces from the same version stream.
 
 ### Primary local workflow (recommended)
 
-If you want local development with fully containerized tooling, use this one command from your host machine:
+If you want local development with fully containerized tooling (no local Rust install), use Docker-only commands from your host machine:
 
 ```bash
-devopster dev-env
+./scripts/container.sh verify
+./scripts/container.sh shell
 ```
 
-It opens the project container and runs:
+Or launch onboarding directly in container:
 
-- `cargo fetch && cargo install --path . --locked --force && cargo test`
-- `devopster setup` (guided onboarding)
+```bash
+./scripts/container.sh setup
+```
+
+The container runner handles image build and command execution fully inside Docker.
 
 ### What `devopster dev-env` does
 
@@ -191,14 +203,31 @@ Result: code stays local in VS Code, while Rust, provider CLIs, build, and tests
 ### Local Commands
 
 ```bash
-# Primary local onboarding path:
-devopster dev-env
+# Build/test/lint in the shared devcontainer image:
+./scripts/container.sh verify
 
-# Or open a container shell only:
+# Open an interactive shell in the runtime image:
+./scripts/container.sh shell
+
+# Guided setup inside container:
+./scripts/container.sh setup
+
+# Or use the menu-based setup helper:
 ./scripts/setup.sh
 
 # Inside the container:
 devopster
+```
+
+Container task runner reference:
+
+```bash
+./scripts/container.sh devcontainer-build
+./scripts/container.sh dev-build
+./scripts/container.sh build
+./scripts/container.sh test
+./scripts/container.sh lint
+./scripts/container.sh run repo audit
 ```
 
 ### In-container bootstrap command

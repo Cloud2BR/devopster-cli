@@ -1,11 +1,20 @@
 name: Unified App Release (CLI + GUI)
 
 # Builds the DevOpster desktop app for macOS (Intel + Apple Silicon),
-# Windows x64, and Linux x64. Runs on manual dispatch and on `v*`
-# tags and publishes a single release containing both GUI installers
+# Windows x64, and Linux x64. Runs on pull requests and main pushes
+# to produce downloadable build artifacts, and on manual dispatch or
+# `v*` tags to publish a single release containing both GUI installers
 # and standalone CLI artifacts.
 
 on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       publish_release:
@@ -23,10 +32,6 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    tags:
-      - "v*"
-
 permissions:
   contents: write
 

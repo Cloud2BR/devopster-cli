@@ -32,6 +32,7 @@ let cliHistory = [];
 let cliSaved = [];
 let cliStateLoaded = false;
 let currentTheme = "light";
+let cliRunning = false;
 
 const HISTORY_LIMIT = 50;
 const HISTORY_KEY = "devopsterCliHistory";
@@ -106,7 +107,7 @@ function applyTheme(theme, persist = true) {
 
 function updateThemeButton() {
   if (!setActions._themeBtn) return;
-  const nextLabel = currentTheme === "dark" ? "☀️ Light" : "🌙 Dark";
+  const nextLabel = currentTheme === "dark" ? "Light Mode" : "Dark Mode";
   setActions._themeBtn.textContent = nextLabel;
   setActions._themeBtn.setAttribute(
     "aria-label",
@@ -263,9 +264,20 @@ function toggleCliDrawer(force) {
   setCliOpen(typeof force === "boolean" ? force : !isOpen);
 }
 
+function setCliBusy(busy) {
+  cliRunning = busy;
+  if (cliRun) cliRun.disabled = busy;
+  if (cliSave) cliSave.disabled = busy;
+  if (cliInput) cliInput.disabled = busy;
+  if (cliHistoryClear) cliHistoryClear.disabled = busy;
+  if (cliSavedClear) cliSavedClear.disabled = busy;
+  document.body.classList.toggle("cli-busy", busy);
+}
+
 // ───── routes ─────────────────────────────────────────────────────
 const routes = {
   dashboard: renderDashboard,
+  auth: renderAuth,
   diagnostics: renderDiagnostics,
   inventory: renderInventory,
   audit: renderAudit,
@@ -310,11 +322,12 @@ async function renderDashboard() {
   view.appendChild(el("div", { class: "card", style: "margin-top:18px" }, [
     el("h3", { text: "Quick actions" }),
     el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" }, [
+      actionBtn("Sign in", () => navigate("auth")),
       actionBtn("Run diagnostics", () => navigate("diagnostics")),
       actionBtn("Open inventory", () => navigate("inventory")),
-      actionBtn("Audit repos", () => navigate("audit")),
-      actionBtn("Edit config", () => navigate("config")),
-      actionBtn("Open CLI mode", () => navigate("console")),
+      actionBtn("Repository audit", () => navigate("audit")),
+      actionBtn("Edit configuration", () => navigate("config")),
+      actionBtn("Open terminal", () => navigate("console")),
     ]),
   ]));
 
@@ -338,6 +351,58 @@ function actionBtn(label, fn) {
   const b = el("button", { class: "btn", text: label });
   b.addEventListener("click", fn);
   return b;
+}
+
+// ───── AUTHENTICATION ─────────────────────────────────────────────
+async function renderAuth() {
+  setHeader("Authentication", "Connect browser-based SSO before previewing data.");
+  clear(view);
+
+  view.appendChild(el("div", { class: "card" }, [
+    el("h3", { text: "Sign in with your provider" }),
+    el("p", { text: "These flows open the system browser and complete via the provider's own login experience. Use them before running inventory, audit, or stats screens." }),
+    el("div", { style: "margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" }, [
+      btn("GitHub", "btn-primary", () => runProviderLogin(["login", "github"])),
+      btn("Azure DevOps", "btn-primary", () => runProviderLogin(["login", "azure-devops"])),
+      btn("GitLab", "btn-primary", () => runProviderLogin(["login", "gitlab"])),
+      btn("All providers", "btn", () => runProviderLogin(["login", "all"])),
+      btn("Refresh status", "btn", renderAuth),
+    ]),
+  ]));
+
+  const out = el("div", { class: "card", style: "margin-top:14px" }, [
+    el("h3", { text: "Sign-in status" }),
+    el("div", { id: "auth-status", class: "console", style: "margin-top:10px;height:auto;min-height:180px" }, "Loading status…"),
+  ]);
+  view.appendChild(out);
+
+  try {
+    const res = await invoke("run_devopster", { args: ["login", "status"] });
+    const statusEl = document.getElementById("auth-status");
+    if (statusEl) {
+      statusEl.textContent = (res.stdout || "") + (res.stderr ? "\n[stderr]\n" + res.stderr : "");
+    }
+  } catch (err) {
+    const statusEl = document.getElementById("auth-status");
+    if (statusEl) {
+      statusEl.textContent = String(err);
+    }
+  }
+}
+
+async function runProviderLogin(args) {
+  const statusEl = document.getElementById("auth-status");
+  if (statusEl) statusEl.textContent = `Running devopster ${args.join(" ")}…`;
+  try {
+    const res = await invoke("run_devopster", { args });
+    if (statusEl) {
+      statusEl.textContent = (res.stdout || "") + (res.stderr ? "\n[stderr]\n" + res.stderr : "");
+    }
+    toast("Sign-in completed.", res.status === 0 ? "ok" : "err");
+  } catch (err) {
+    if (statusEl) statusEl.textContent = String(err);
+    toast(String(err), "err");
+  }
 }
 
 // ───── DIAGNOSTICS ────────────────────────────────────────────────
@@ -472,7 +537,7 @@ async function renderInventory() {
 
 // ───── REPO AUDIT ─────────────────────────────────────────────────
 async function renderAudit() {
-  setHeader("Repository audit", "Run policy checks across every targeted repository.");
+  setHeader("Repository Audit", "Run policy checks across every targeted repository.");
   clear(view);
 
   view.appendChild(el("div", { class: "card" }, [
@@ -516,7 +581,7 @@ function btn(label, cls, fn) {
 
 // ───── STATS ──────────────────────────────────────────────────────
 async function renderStats() {
-  setHeader("Stats", "Org-wide metadata coverage and compliance.");
+  setHeader("Statistics", "Org-wide metadata coverage and compliance.");
   clear(view);
   view.appendChild(loading("Computing stats…"));
   try {
@@ -602,7 +667,7 @@ async function renderSetup() {
 
 // ───── CONFIG editor ──────────────────────────────────────────────
 async function renderConfig() {
-  setHeader("Config", `Edit ${env?.config_path || "devopster-config.yaml"}.`);
+  setHeader("Configuration", `Edit ${env?.config_path || "devopster-config.yaml"}.`);
   clear(view);
   view.appendChild(loading("Reading config…"));
 
@@ -634,7 +699,7 @@ async function renderConfig() {
 
 // ───── CONSOLE (live streaming arbitrary commands) ────────────────
 async function renderConsole() {
-  setHeader("CLI Mode", "Run devopster commands without leaving the app.");
+  setHeader("Terminal", "Run devopster commands without leaving the app.");
   clear(view);
   view.appendChild(el("div", { class: "card" }, [
     el("h3", { text: "CLI Mode" }),
@@ -676,19 +741,24 @@ async function streamCmd(args, label) {
 async function runCliCommand(raw) {
   const cmd = raw.trim();
   if (!cmd) return;
+  if (cliRunning) {
+    toast("A command is already running.", "err");
+    return;
+  }
   addHistory(cmd);
   if (cliInput) cliInput.value = cmd;
   const args = parseArgs(cmd);
   consoleBuffer.push(`\n$ devopster ${args.join(" ")}\n`);
   renderCliOutput();
-  if (cliRun) cliRun.disabled = true;
+  setCliBusy(true);
   try {
     const code = await streamCmd(args, cmd);
     consoleBuffer.push(`\n[exit ${code}]\n`);
   } catch (err) {
     consoleBuffer.push(`\n[error] ${err}\n`);
   } finally {
-    if (cliRun) cliRun.disabled = false;
+    setCliBusy(false);
+    if (cliInput) cliInput.focus();
     renderCliOutput();
   }
 }

@@ -7,15 +7,15 @@ on:
   pull_request:
 
 jobs:
-  test:
+  container-preflight:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build container image
-        run: docker build -t devopster-cli-ci .
+      - name: Build shared devcontainer image
+        run: docker build --target devcontainer -t devopster-cli-devcontainer .
       - name: Run build in container
-        run: docker run --rm devopster-cli-ci cargo build --locked
+        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo build --locked
       - name: Run tests in container
-        run: docker run --rm devopster-cli-ci cargo test --locked
+        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo test --locked
       - name: Run lint in container
-        run: docker run --rm devopster-cli-ci cargo clippy --all-targets --all-features -- -D warnings
+        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo clippy --all-targets --all-features -- -D warnings

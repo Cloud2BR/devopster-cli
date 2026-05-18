@@ -96,7 +96,7 @@ info "Building devopster container image..."
 docker build --target dev -t devopster-cli-dev .
 
 # ── Host browser proxy ───────────────────────────────────────────────────────
-# devopster writes a URL to .devopster_open_url (inside the mounted /app dir)
+# devopster writes a URL to .devopster_open_url (inside the mounted workspace)
 # when it needs to open the browser from inside the container.  We watch that
 # file here on the host and call open/xdg-open so the browser pops up on the
 # host machine automatically — no manual URL copying needed.
@@ -146,7 +146,7 @@ fi
 success "Starting Docker runtime — browser links will still open on the host when needed."
 docker "${docker_args[@]}" \
     -v "$HOME/.config/devopster:/root/.config/devopster" \
-    -v "$(pwd):/app" \
-    -w /app \
+    -v "$(pwd):/workspaces/devopster-cli" \
+    -w /workspaces/devopster-cli \
     devopster-cli-dev \
     "${docker_command[@]}"

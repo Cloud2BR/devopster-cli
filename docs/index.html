@@ -784,7 +784,7 @@
           <!-- START BADGE -->
           <span class="badge-link"><img src="https://img.shields.io/badge/Total%20views-278-limegreen" alt="Total views" loading="lazy" /></span>
           <!-- END BADGE -->
-          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">Mode</button>
         </div>
         <div class="hero-control-panel" aria-label="DevOpster quick links">
           <p class="hero-control-label">Quick links</p>
@@ -792,9 +792,9 @@
             <a class="hero-control-link" href="#download">Download guide</a>
             <a class="hero-control-link" href="#quickstart">Quick start</a>
             <a class="hero-control-link" href="#identity">Owner</a>
-            <a class="hero-control-link" href="https://github.com/Cloud2BR/devopster-cli/releases" target="_blank" rel="noopener noreferrer">All releases ↗</a>
-            <a class="hero-control-link" href="https://github.com/Cloud2BR/devopster-cli/actions" target="_blank" rel="noopener noreferrer">Build pipelines ↗</a>
-            <a class="hero-control-link" href="https://github.com/Cloud2BR/devopster-cli" target="_blank" rel="noopener noreferrer">Source on GitHub ↗</a>
+            <a class="hero-control-link" href="https://github.com/Cloud2BR/devopster-cli/releases" target="_blank" rel="noopener noreferrer">All releases →</a>
+            <a class="hero-control-link" href="https://github.com/Cloud2BR/devopster-cli/actions" target="_blank" rel="noopener noreferrer">Build pipelines →</a>
+            <a class="hero-control-link" href="https://github.com/Cloud2BR/devopster-cli" target="_blank" rel="noopener noreferrer">Source on GitHub →</a>
           </div>
         </div>
       </div>
@@ -910,7 +910,7 @@
                 </div>
               </div>
               <p class="platform-desc">Best for end users who want the normal drag-to-Applications install flow.</p>
-              <a class="download-label" id="dl-btn-macos" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Download DevOpster for macOS">↓ Download for macOS</a>
+              <a class="download-label" id="dl-btn-macos" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Download DevOpster for macOS">Download for macOS</a>
               <div class="asset-files" id="assets-macos"></div>
               <div class="platform-tip">
                 <strong>Gatekeeper:</strong> if macOS shows "Not Opened", open <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>, then open the DMG again.
@@ -935,7 +935,7 @@
                 </div>
               </div>
               <p class="platform-desc">Best for Windows users who want a normal installer. The EXE or MSI installs DevOpster into the usual Windows location and adds the normal shortcuts.</p>
-              <a class="download-label" id="dl-btn-windows" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Download DevOpster for Windows">↓ Download for Windows</a>
+              <a class="download-label" id="dl-btn-windows" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Download DevOpster for Windows">Download for Windows</a>
               <div class="asset-files" id="assets-windows"></div>
               <p class="platform-tip">
                 <strong>SmartScreen:</strong> if Windows shows a warning, click <strong>More info</strong> and then <strong>Run anyway</strong>. After setup finishes, launch DevOpster from the Start menu or desktop shortcut.
@@ -957,7 +957,7 @@
                 </div>
               </div>
               <p class="platform-desc">Choose the package style that matches your distro and whether you want a portable build.</p>
-              <a class="download-label" id="dl-btn-linux" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Download DevOpster for Linux">↓ Download for Linux</a>
+              <a class="download-label" id="dl-btn-linux" href="https://github.com/Cloud2BR/devopster-cli/releases/latest" target="_blank" rel="noopener noreferrer" aria-label="Download DevOpster for Linux">Download for Linux</a>
               <div class="asset-files" id="assets-linux"></div>
               <p class="platform-tip">
                 <strong>Linux tip:</strong> AppImage builds usually need <code>chmod +x</code> before running. DEB builds install cleanly with <code>sudo apt install ./file.deb</code>. RPM: <code>sudo rpm -i ./file.rpm</code>.
@@ -1147,7 +1147,7 @@
         if (!btn) return;
         function apply(theme) {
           document.documentElement.setAttribute('data-theme', theme);
-          btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+          btn.textContent = theme === 'dark' ? 'Light' : 'Dark';
           btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
           try { localStorage.setItem('devopsterTheme', theme); } catch (e) {}
         }
