@@ -11,6 +11,9 @@ Last updated: 2026-05-18
 
 > Cross-platform GitOps CLI built in Rust for managing organization repositories across GitHub, Azure DevOps, and GitLab.
 
+here
+
+
 ## What It Is
 
 > This project is a container-first CLI for repository governance and maintenance at scale. The goal is to give you a single tool that can blueprint repositories, audit standards, sync shared files, generate catalogs, and align metadata across multiple source-control platforms.
@@ -83,6 +86,21 @@ End-user launch modes now included in artifacts:
 Branding asset for upcoming desktop packaging:
 
 - Icon source (red lobster on blue background): `assets/devopster-icon.png`
+
+## GitHub Pages Deployment Strategy
+
+Documentation and install guides are deployed to GitHub Pages with a dual-environment strategy for production and staging validation:
+
+| Branch | Environment | URL |
+|--------|-------------|-----|
+| `main` | **Production** | https://cloud2br.github.io/devopster-cli/ |
+| `test` | **Testing** | https://cloud2br.github.io/devopster-cli/test/ |
+
+**Deployment Flow:**
+- **Main branch** (production): Merged, tested, production-ready documentation. Deployed to root.
+- **Test branch** (staging): Pre-release content, experimental features, testing validations. Deployed to `/test/` subdirectory.
+
+Both environments are automatically deployed via the **Deploy GitHub Pages** workflow (`.github/workflows/deploy-pages.yml`).
 
 ## Desktop App (Tauri)
 
