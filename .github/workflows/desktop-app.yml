@@ -116,7 +116,10 @@ jobs:
             build-essential \
             curl \
             wget \
-            file
+            file \
+            libglib2.0-dev \
+            libgio2.0-cil-dev \
+            pkg-config
 
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
