@@ -18,7 +18,6 @@ on:
       - "src-tauri/**"
       - "frontend/**"
       - "assets/**"
-      - ".github/workflows/desktop-app.yml"
   push:
     tags:
       - "v*"
@@ -42,13 +41,58 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pr-fast-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: pr-fast-x86_64-unknown-linux-gnu
+          workspaces: |
+            . -> target
+            src-tauri -> target
+
+      - name: Build
+        run: cargo build --locked
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Lint
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Tauri smoke compile
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
   build:
+    if: github.event_name != 'pull_request'
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"label":"linux-x64","os":"ubuntu-latest","target":"x86_64-unknown-linux-gnu"}]' || '[{"label":"macos-arm64","os":"macos-14","target":"aarch64-apple-darwin"},{"label":"macos-x64","os":"macos-13","target":"x86_64-apple-darwin"},{"label":"linux-x64","os":"ubuntu-latest","target":"x86_64-unknown-linux-gnu"},{"label":"windows-x64","os":"windows-latest","target":"x86_64-pc-windows-msvc"}]') }}
+        include:
+          - label: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+          - label: macos-x64
+            os: macos-13
+            target: x86_64-apple-darwin
+          - label: linux-x64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - label: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
 
     steps:
       - name: Checkout
