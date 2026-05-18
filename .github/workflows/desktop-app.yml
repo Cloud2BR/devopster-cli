@@ -273,7 +273,7 @@ jobs:
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
-              rm -rf "$RW_DIR"
+              rm -rf "${RW_DIR:?}"
               exit 1
             fi
             rm -rf "$MOUNT/$APP_NAME"
