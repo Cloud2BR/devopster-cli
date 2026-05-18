@@ -226,7 +226,7 @@ jobs:
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
             RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
-            hdiutil convert -format UDWR -o "$RW_DMG" "$dmg"
+            hdiutil convert -format UDRW -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
@@ -509,7 +509,7 @@ jobs:
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
             RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
-            hdiutil convert -format UDWR -o "$RW_DMG" "$dmg"
+            hdiutil convert -format UDRW -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
