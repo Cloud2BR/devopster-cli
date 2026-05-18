@@ -281,7 +281,7 @@ jobs:
             sync
             hdiutil detach "$MOUNT"
             hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
-            rm -rf "$RW_DIR"
+            rm -rf "${RW_DIR:?}"
           done
 
       - name: Verify DMG contains signed app
