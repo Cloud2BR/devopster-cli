@@ -225,12 +225,13 @@ jobs:
           for dmg in "$DMG_DIR"/*.dmg; do
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
-            RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
+            RW_DIR="$(mktemp -d /tmp/devopster-dmg-rw-XXXXXX)"
+            RW_DMG="$RW_DIR/rw-image.dmg"
             hdiutil convert -format UDRW -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
-              rm -f "$RW_DMG"
+              rm -rf "$RW_DIR"
               exit 1
             fi
             rm -rf "$MOUNT/$APP_NAME"
@@ -238,7 +239,7 @@ jobs:
             sync
             hdiutil detach "$MOUNT"
             hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
-            rm -f "$RW_DMG"
+            rm -rf "$RW_DIR"
           done
 
       - name: Verify DMG contains signed app
@@ -508,12 +509,13 @@ jobs:
           for dmg in "$DMG_DIR"/*.dmg; do
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
-            RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
+            RW_DIR="$(mktemp -d /tmp/devopster-dmg-rw-XXXXXX)"
+            RW_DMG="$RW_DIR/rw-image.dmg"
             hdiutil convert -format UDRW -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
-              rm -f "$RW_DMG"
+              rm -rf "$RW_DIR"
               exit 1
             fi
             rm -rf "$MOUNT/$APP_NAME"
@@ -521,7 +523,7 @@ jobs:
             sync
             hdiutil detach "$MOUNT"
             hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
-            rm -f "$RW_DMG"
+            rm -rf "$RW_DIR"
           done
 
       - name: Verify DMG contains signed app
