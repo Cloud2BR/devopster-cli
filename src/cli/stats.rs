@@ -76,7 +76,7 @@ impl StatsCommand {
             *branch_counts.entry(branch).or_insert(0) += 1;
         }
         let mut branch_dist: Vec<(&str, usize)> = branch_counts.into_iter().collect();
-        branch_dist.sort_by(|a, b| b.1.cmp(&a.1));
+        branch_dist.sort_by_key(|entry| std::cmp::Reverse(entry.1));
 
         // --- compliance: all four mandatory checks pass ---
         // Note: README.md presence requires a per-repo file API call; not checked here.
