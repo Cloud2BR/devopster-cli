@@ -5,7 +5,7 @@ Costa Rica / USA
 [![GitHub](https://img.shields.io/badge/--181717?logo=github&logoColor=ffffff)](https://github.com/)
 [Cloud2BR](https://github.com/Cloud2BR)
 
-Last updated: 2026-04-24
+Last updated: 2026-05-18
 
 ----------
 
@@ -14,6 +14,14 @@ Last updated: 2026-04-24
 ## What It Is
 
 > This project is a container-first CLI for repository governance and maintenance at scale. The goal is to give you a single tool that can blueprint repositories, audit standards, sync shared files, generate catalogs, and align metadata across multiple source-control platforms.
+
+## Demo Preview
+
+This preview is composed from real screenshots of the installed app and the browser-based sign-in flow.
+
+<p align="center">
+  <img src="assets/readme/product-preview.png" alt="DevOpster product preview showing the desktop dashboard and browser sign-in" width="1400" />
+</p>
 
 ## Why This Repo Exists
 
@@ -86,6 +94,7 @@ response with proper UI.
 Screens included:
 
 - **Dashboard** — environment health (sidecar / config / OS+arch), quick links.
+- **Authentication** — browser-based sign-in for GitHub, Azure DevOps, and GitLab before previewing data.
 - **Diagnostics** — runs `devopster diagnostics` and shows pass/fail.
 - **Inventory** — typed table of repositories (filter by name + provider) backed by `devopster inventory --json`.
 - **Repo audit** — runs `devopster repo audit` (with optional `--report-only`) and renders results.
