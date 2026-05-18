@@ -268,12 +268,16 @@ jobs:
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
             RW_DIR="$(mktemp -d /tmp/devopster-dmg-rw-XXXXXX)"
+            if [ -z "$RW_DIR" ] || [ ! -d "$RW_DIR" ]; then
+              echo "RW_DIR was not set or directory does not exist. Aborting."
+              exit 1
+            fi
             RW_DMG="$RW_DIR/rw-image.dmg"
             hdiutil convert -format UDRW -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
-              rm -rf "${RW_DIR:?}"
+              rm -rf "$RW_DIR"
               exit 1
             fi
             rm -rf "$MOUNT/$APP_NAME"
@@ -281,7 +285,7 @@ jobs:
             sync
             hdiutil detach "$MOUNT"
             hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
-            rm -rf "${RW_DIR:?}"
+            rm -rf "$RW_DIR"
           done
 
       - name: Verify DMG contains signed app
