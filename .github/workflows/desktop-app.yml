@@ -53,6 +53,16 @@ jobs:
         with:
           targets: x86_64-unknown-linux-gnu
 
+      - name: Linux deps for Tauri smoke check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libglib2.0-dev \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libsoup-3.0-dev \
+            pkg-config
+
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
         with:
@@ -277,7 +287,7 @@ jobs:
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
-              rm -rf "$RW_DIR"
+              rm -rf "${RW_DIR:?}"
               exit 1
             fi
             rm -rf "$MOUNT/$APP_NAME"
@@ -285,7 +295,7 @@ jobs:
             sync
             hdiutil detach "$MOUNT"
             hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
-            rm -rf "$RW_DIR"
+            rm -rf "${RW_DIR:?}"
           done
 
       - name: Verify DMG contains signed app

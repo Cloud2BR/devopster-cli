@@ -293,6 +293,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > pr_body.md <<'EOF_PR_BODY'
+          ${{ steps.ai.outputs.body }}
+          EOF_PR_BODY
           gh pr edit "${{ github.event.pull_request.number }}" \
             --repo "${{ github.repository }}" \
-            --body "${{ steps.ai.outputs.body }}"
+            --body-file pr_body.md
