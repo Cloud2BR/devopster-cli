@@ -4,18 +4,65 @@ on:
   push:
     branches:
       - main
+      - test
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - "src-tauri/**"
+      - "frontend/**"
+      - "Dockerfile"
+      - ".github/workflows/ci.yml"
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - "src-tauri/**"
+      - "frontend/**"
+      - "Dockerfile"
+      - ".github/workflows/ci.yml"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  quick-rust-check:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build container image
-        run: docker build -t devopster-cli-ci .
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --locked
+      - name: Test
+        run: cargo test --locked
+      - name: Lint
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  container-preflight:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build shared devcontainer image
+        run: |
+          docker buildx build \
+            --target devcontainer \
+            --tag devopster-cli-devcontainer \
+            --cache-from type=gha,scope=devcontainer \
+            --cache-to type=gha,mode=max,scope=devcontainer \
+            --load \
+            .
       - name: Run build in container
-        run: docker run --rm devopster-cli-ci cargo build --locked
+        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo build --locked
       - name: Run tests in container
-        run: docker run --rm devopster-cli-ci cargo test --locked
+        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo test --locked
       - name: Run lint in container
-        run: docker run --rm devopster-cli-ci cargo clippy --all-targets --all-features -- -D warnings
+        run: docker run --rm -w /workspaces/devopster-cli devopster-cli-devcontainer cargo clippy --all-targets --all-features -- -D warnings

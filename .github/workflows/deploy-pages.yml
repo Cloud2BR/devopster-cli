@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+      - test
+    paths:
+      - "docs/**"
+      - "assets/**"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -12,15 +17,12 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,6 +44,14 @@ jobs:
           cp -R docs/. _site/
           cp -R assets/. _site/assets/
 
+      - name: Deploy to test subdirectory if on test branch
+        if: github.ref == 'refs/heads/test'
+        run: |
+          mkdir -p _site_prod/test
+          mv _site/* _site_prod/test/ || true
+          rm -rf _site
+          mv _site_prod _site
+
       - name: Snapshot latest release assets for site
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -56,10 +66,8 @@ jobs:
               | jq 'def valid: map(select((.draft | not) and (.assets | length > 0)));
                 def stable: map(select(.prerelease | not));
                 def stable_unified: stable | map(select((.tag_name // "") | test("^v")));
-                def stable_legacy_desktop: stable | map(select((.tag_name // "") | test("^desktop-v")));
                 def prerelease_unified: valid | map(select(.prerelease and ((.tag_name // "") | test("^v"))));
-                def prerelease_legacy_desktop: valid | map(select(.prerelease and ((.tag_name // "") | test("^desktop-v"))));
-                (stable_unified | .[0]) // (stable_legacy_desktop | .[0]) // (stable | .[0]) // (prerelease_unified | .[0]) // (prerelease_legacy_desktop | .[0]) // (valid | .[0]) // {}' \
+                (stable_unified | .[0]) // (stable | .[0]) // (prerelease_unified | .[0]) // (valid | .[0]) // {}' \
           > _site/assets/releases/latest.json
 
       - name: Upload Pages artifact

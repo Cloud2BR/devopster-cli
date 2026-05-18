@@ -1,10 +1,11 @@
 {
   "name": "devopster-cli",
   "build": {
-    "dockerfile": "Dockerfile",
+    "dockerfile": "../Dockerfile",
+    "target": "devcontainer",
     "context": ".."
   },
-  "remoteUser": "vscode",
+  "remoteUser": "root",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "customizations": {
     "vscode": {

@@ -5,15 +5,26 @@ Costa Rica / USA
 [![GitHub](https://img.shields.io/badge/--181717?logo=github&logoColor=ffffff)](https://github.com/)
 [Cloud2BR](https://github.com/Cloud2BR)
 
-Last updated: 2026-04-24
+Last updated: 2026-05-18
 
 ----------
 
 > Cross-platform GitOps CLI built in Rust for managing organization repositories across GitHub, Azure DevOps, and GitLab.
 
+here
+
+
 ## What It Is
 
 > This project is a container-first CLI for repository governance and maintenance at scale. The goal is to give you a single tool that can blueprint repositories, audit standards, sync shared files, generate catalogs, and align metadata across multiple source-control platforms.
+
+## Demo Preview
+
+This preview is composed from real screenshots of the installed app and the browser-based sign-in flow.
+
+<p align="center">
+  <img src="assets/readme/product-preview.png" alt="DevOpster product preview showing the desktop dashboard and browser sign-in" width="1400" />
+</p>
 
 ## Why This Repo Exists
 
@@ -42,21 +53,28 @@ Last updated: 2026-04-24
 
 > This project is designed to run inside a container. Host-level development dependencies are intentionally minimal: install Docker once on the host, then run everything else in containers.
 
+Container build source of truth:
+
+- `Dockerfile` is the single image definition used by:
+  - VS Code Dev Containers (`devcontainer` target)
+  - local `devopster dev-env` / `./scripts/setup.sh` workflows (`dev` target)
+  - CI preflight checks in GitHub Actions
+- Native desktop release packaging remains on OS-native GitHub runners in the unified release workflow.
+
 ## Release Automation
 
-This repository now includes automated build artifacts on GitHub Actions:
+Releases are built by the **Unified App Release (CLI + GUI)** workflow.
 
-- On every merge to `main`: builds downloadable CLI artifacts for Linux, Windows, and macOS.
-- On version tags like `v1.0.0`: publishes those artifacts to a GitHub Release.
+- Triggered by pushing a `v*` tag or running the workflow manually with publish enabled.
+- Each release ships both native desktop installers and standalone CLI artifacts from the same version.
 
-Current downloadable outputs:
+Current release outputs include:
 
-- `devopster-linux-x86_64.tar.gz` (CLI binary + Linux desktop metadata + GUI launcher script)
-- `devopster-windows-x86_64.zip` (CLI binary + GUI launcher cmd + `.ico` icon)
-- `devopster-macos-x86_64.tar.gz` (CLI binary + `.icns` icon)
-- `devopster-macos.dmg` (includes CLI files plus native `DevOpster GUI.app` bundle)
+- macOS: `DevOpster_<version>_arm64.dmg`, `DevOpster_<version>_arm64.app.tar.gz`, `devopster-cli-macos-arm64.tar.gz` (plus Intel variants when enabled)
+- Windows: `DevOpster_<version>_x64-setup.exe`, `DevOpster_<version>_x64_en-US.msi`, `devopster-cli-windows-x86_64.exe`
+- Linux: `DevOpster_<version>_amd64.deb`, `DevOpster_<version>_amd64.AppImage`, `DevOpster-<version>-1.x86_64.rpm`, `devopster-cli-linux-x86_64.tar.gz`
 
-DevOpster now publishes one unified release (`v*` tags or manual dispatch with publish enabled) that includes both GUI installers and standalone CLI artifacts.
+DevOpster publishes one unified release stream (`v*` tags or manual dispatch with publish enabled) that includes both GUI installers and standalone CLI artifacts.
 Download from GitHub Releases and choose either the desktop installer (`.dmg`, `-setup.exe`/`.msi`, `.deb`/`.AppImage`/`.rpm`) or the standalone CLI artifact for your platform.
 Public macOS DMG releases require Apple Developer ID signing and notarization secrets in GitHub Actions; the release workflow now refuses to publish macOS installers without that configuration.
 
@@ -69,6 +87,21 @@ Branding asset for upcoming desktop packaging:
 
 - Icon source (red lobster on blue background): `assets/devopster-icon.png`
 
+## GitHub Pages Deployment Strategy
+
+Documentation and install guides are deployed to GitHub Pages with a dual-environment strategy for production and staging validation:
+
+| Branch | Environment | URL |
+|--------|-------------|-----|
+| `main` | **Production** | https://cloud2br.github.io/devopster-cli/ |
+| `test` | **Testing** | https://cloud2br.github.io/devopster-cli/test/ |
+
+**Deployment Flow:**
+- **Main branch** (production): Merged, tested, production-ready documentation. Deployed to root.
+- **Test branch** (staging): Pre-release content, experimental features, testing validations. Deployed to `/test/` subdirectory.
+
+Both environments are automatically deployed via the **Deploy GitHub Pages** workflow (`.github/workflows/deploy-pages.yml`).
+
 ## Desktop App (Tauri)
 
 DevOpster ships a native desktop application built with [Tauri v2](https://tauri.app/).
@@ -79,6 +112,7 @@ response with proper UI.
 Screens included:
 
 - **Dashboard** — environment health (sidecar / config / OS+arch), quick links.
+- **Authentication** — browser-based sign-in for GitHub, Azure DevOps, and GitLab before previewing data.
 - **Diagnostics** — runs `devopster diagnostics` and shows pass/fail.
 - **Inventory** — typed table of repositories (filter by name + provider) backed by `devopster inventory --json`.
 - **Repo audit** — runs `devopster repo audit` (with optional `--report-only`) and renders results.
@@ -123,16 +157,20 @@ Each release bundles both interfaces from the same version stream.
 
 ### Primary local workflow (recommended)
 
-If you want local development with fully containerized tooling, use this one command from your host machine:
+If you want local development with fully containerized tooling (no local Rust install), use Docker-only commands from your host machine:
 
 ```bash
-devopster dev-env
+./scripts/container.sh verify
+./scripts/container.sh shell
 ```
 
-It opens the project container and runs:
+Or launch onboarding directly in container:
 
-- `cargo fetch && cargo install --path . --locked --force && cargo test`
-- `devopster setup` (guided onboarding)
+```bash
+./scripts/container.sh setup
+```
+
+The container runner handles image build and command execution fully inside Docker.
 
 ### What `devopster dev-env` does
 
@@ -192,14 +230,31 @@ Result: code stays local in VS Code, while Rust, provider CLIs, build, and tests
 ### Local Commands
 
 ```bash
-# Primary local onboarding path:
-devopster dev-env
+# Build/test/lint in the shared devcontainer image:
+./scripts/container.sh verify
 
-# Or open a container shell only:
+# Open an interactive shell in the runtime image:
+./scripts/container.sh shell
+
+# Guided setup inside container:
+./scripts/container.sh setup
+
+# Or use the menu-based setup helper:
 ./scripts/setup.sh
 
 # Inside the container:
 devopster
+```
+
+Container task runner reference:
+
+```bash
+./scripts/container.sh devcontainer-build
+./scripts/container.sh dev-build
+./scripts/container.sh build
+./scripts/container.sh test
+./scripts/container.sh lint
+./scripts/container.sh run repo audit
 ```
 
 ### In-container bootstrap command
@@ -320,7 +375,7 @@ blueprint:
 
 <!-- START BADGE -->
 <div align="center">
-  <img src="https://img.shields.io/badge/Total%20views-278-limegreen" alt="Total views">
-  <p>Refresh Date: 2026-04-28</p>
+  <img src="https://img.shields.io/badge/Total%20views-279-limegreen" alt="Total views">
+  <p>Refresh Date: 2026-05-18</p>
 </div>
 <!-- END BADGE -->

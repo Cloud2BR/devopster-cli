@@ -146,8 +146,8 @@ Write-Success 'Starting Docker runtime.'
 try {
     $dockerArgs += @(
         '-v', "${env:USERPROFILE}\.config\devopster:/root/.config/devopster",
-        '-v', "${PWD}:/app",
-        '-w', '/app',
+        '-v', "${PWD}:/workspaces/devopster-cli",
+        '-w', '/workspaces/devopster-cli',
         'devopster-cli-dev'
     ) + $dockerCommand
 

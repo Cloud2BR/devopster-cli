@@ -38,19 +38,19 @@ RUN ARCH=$(dpkg --print-architecture) \
     && dpkg -i /tmp/glab.deb \
     && rm /tmp/glab.deb
 
-WORKDIR /app
+WORKDIR /workspaces/devopster-cli
 COPY . .
 RUN cargo fetch
 
-# ── Build & install the binary ────────────────────────────────────────────────
+FROM base AS devcontainer
+CMD ["sleep", "infinity"]
+
+FROM base AS test
+RUN cargo test --locked
+
+FROM base AS dev
 # `cargo install` places `devopster` in ~/.cargo/bin which is on PATH in the
 # official Rust image, so `devopster <cmd>` works directly after `devopster dev-env`.
 RUN cargo install --path . --locked
-
-FROM base AS test
-RUN cargo test
-
-FROM base AS dev
-# Binary is already installed from base — start a shell so the user can run
-# `devopster login github` and any other command right away.
 CMD ["bash"]
+

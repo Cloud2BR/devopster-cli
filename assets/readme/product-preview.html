@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DevOpster Product Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg1: #07111f;
+        --bg2: #0b1629;
+        --panel: rgba(12, 20, 37, 0.94);
+        --line: rgba(120, 165, 220, 0.16);
+        --text: #f2f7ff;
+        --muted: #9bb0cf;
+        --accent: #61b8ff;
+        --accent2: #7df0d4;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: Inter, "Segoe UI", system-ui, sans-serif;
+        background:
+          radial-gradient(circle at 20% 15%, rgba(97, 184, 255, 0.18), transparent 30%),
+          radial-gradient(circle at 85% 20%, rgba(125, 240, 212, 0.12), transparent 28%),
+          linear-gradient(135deg, var(--bg1), var(--bg2));
+        color: var(--text);
+        padding: 56px;
+      }
+      .shell {
+        width: 1688px;
+        height: 1048px;
+        margin: 0 auto;
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+        border: 1px solid rgba(120, 165, 220, 0.18);
+        border-radius: 34px;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.38);
+        padding: 48px;
+        position: relative;
+        overflow: hidden;
+      }
+      .shell::before,
+      .shell::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(6px);
+        pointer-events: none;
+      }
+      .shell::before {
+        width: 280px;
+        height: 280px;
+        right: -80px;
+        top: -60px;
+        background: rgba(97, 184, 255, 0.13);
+      }
+      .shell::after {
+        width: 360px;
+        height: 360px;
+        left: -110px;
+        bottom: -120px;
+        background: rgba(125, 240, 212, 0.08);
+      }
+      .headline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 28px;
+        position: relative;
+        z-index: 1;
+      }
+      .title {
+        font-size: 58px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        margin: 0;
+      }
+      .subtitle {
+        margin: 8px 0 0;
+        font-size: 24px;
+        color: var(--muted);
+      }
+      .pillbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .pill {
+        padding: 14px 18px;
+        border-radius: 999px;
+        background: rgba(21, 35, 59, 0.96);
+        border: 1px solid var(--line);
+        color: #dce8fb;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.08fr 0.92fr;
+        gap: 28px;
+        position: relative;
+        z-index: 1;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 18px;
+        box-shadow: 0 12px 34px rgba(0,0,0,0.26);
+      }
+      .shot {
+        width: 100%;
+        height: 570px;
+        object-fit: cover;
+        display: block;
+        border-radius: 18px;
+        border: 1px solid rgba(120,165,220,0.18);
+        background: #09101d;
+      }
+      .caption {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 4px 0;
+      }
+      .caption strong {
+        display: block;
+        font-size: 22px;
+        margin-bottom: 4px;
+      }
+      .caption span {
+        color: var(--muted);
+        font-size: 16px;
+      }
+      .status {
+        margin-top: 20px;
+        padding: 18px 20px;
+        border-radius: 20px;
+        background: rgba(14, 24, 42, 0.96);
+        border: 1px solid rgba(120, 165, 220, 0.16);
+        color: #dfe9fb;
+        font-size: 16px;
+        line-height: 1.7;
+        white-space: pre-line;
+      }
+      .footer {
+        margin-top: 22px;
+        padding: 18px 22px;
+        border-radius: 20px;
+        background: linear-gradient(90deg, rgba(19, 35, 59, 0.98), rgba(14, 24, 42, 0.98));
+        border: 1px solid rgba(120, 165, 220, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .footer .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--accent2);
+        box-shadow: 0 0 0 6px rgba(125, 240, 212, 0.14);
+      }
+      .footer p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+      }
+      .right .shot { height: 432px; }
+      .right .status { min-height: 206px; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="headline">
+        <div>
+          <h1 class="title">DevOpster</h1>
+          <p class="subtitle">A polished install-ready desktop experience with browser-based sign-in</p>
+        </div>
+        <div class="pillbar">
+          <div class="pill">Dashboard</div>
+          <div class="pill">Authentication</div>
+          <div class="pill">Inventory</div>
+          <div class="pill">Repository Audit</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <img class="shot" src="dashboard-shot.png" alt="DevOpster dashboard screenshot" />
+          <div class="caption">
+            <div>
+              <strong>Desktop dashboard</strong>
+              <span>What the installed app looks like when it opens</span>
+            </div>
+            <div class="pill">Native app</div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="card">
+            <img class="shot" src="auth-shot.png" alt="DevOpster authentication screenshot" />
+            <div class="caption">
+              <div>
+                <strong>Browser sign-in</strong>
+                <span>Real SSO flow used before previewing data</span>
+              </div>
+              <div class="pill">SSO</div>
+            </div>
+          </div>
+          <div class="status">Dashboard state: sidecar ready, config found, UI loaded in native shell\n\nAuthentication state: GitHub, Azure DevOps, and GitLab are supported with browser sign-in.\n\nUse this preview to represent the current installed app in the README.</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="badge"><span class="dot"></span> Real app captures, styled for the README</div>
+        <p>Generated from the current local build and browser-based sign-in flow</p>
+      </div>
+    </div>
+  </body>
+</html>

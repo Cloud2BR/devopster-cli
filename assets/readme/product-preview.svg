@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1160" role="img" aria-labelledby="title desc">
+  <title id="title">DevOpster Product Preview</title>
+  <desc id="desc">A polished product-style preview featuring real screenshots of the DevOpster desktop dashboard and authentication screens.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06111f"/>
+      <stop offset="100%" stop-color="#0b172a"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111b31"/>
+      <stop offset="100%" stop-color="#0c1426"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5aa9ff"/>
+      <stop offset="100%" stop-color="#7bd3ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <rect width="1800" height="1160" fill="url(#bg)"/>
+  <circle cx="240" cy="170" r="220" fill="#3269b6" opacity="0.16"/>
+  <circle cx="1560" cy="960" r="280" fill="#3ca7ff" opacity="0.10"/>
+  <circle cx="1380" cy="140" r="170" fill="#7cd0ff" opacity="0.10"/>
+
+  <rect x="80" y="60" width="1640" height="1040" rx="34" fill="url(#panel)" stroke="#23314c" filter="url(#shadow)"/>
+
+  <text x="140" y="168" fill="#f5f8ff" font-family="Inter, Segoe UI, sans-serif" font-size="54" font-weight="800">DevOpster</text>
+  <text x="140" y="214" fill="#97a8c8" font-family="Inter, Segoe UI, sans-serif" font-size="24">Browser-based sign-in and desktop preview for repository governance</text>
+
+  <rect x="140" y="254" width="220" height="46" rx="14" fill="#17314f"/>
+  <rect x="372" y="254" width="166" height="46" rx="14" fill="#17314f"/>
+  <rect x="550" y="254" width="170" height="46" rx="14" fill="#17314f"/>
+  <rect x="732" y="254" width="146" height="46" rx="14" fill="#17314f"/>
+  <text x="172" y="284" fill="#d9e7ff" font-family="Inter, Segoe UI, sans-serif" font-size="17" font-weight="600">Desktop dashboard</text>
+  <text x="404" y="284" fill="#d9e7ff" font-family="Inter, Segoe UI, sans-serif" font-size="17" font-weight="600">Browser sign-in</text>
+  <text x="580" y="284" fill="#d9e7ff" font-family="Inter, Segoe UI, sans-serif" font-size="17" font-weight="600">Inventory</text>
+  <text x="760" y="284" fill="#d9e7ff" font-family="Inter, Segoe UI, sans-serif" font-size="17" font-weight="600">Audit</text>
+
+  <rect x="140" y="352" width="782" height="620" rx="28" fill="#09111e" stroke="#2b3d5d" filter="url(#soft)"/>
+  <rect x="938" y="352" width="722" height="620" rx="28" fill="#09111e" stroke="#2b3d5d" filter="url(#soft)"/>
+
+  <rect x="166" y="378" width="730" height="568" rx="20" fill="#0f182a"/>
+  <image href="dashboard.png" x="166" y="378" width="730" height="568" preserveAspectRatio="xMidYMid slice"/>
+  <rect x="166" y="378" width="730" height="568" rx="20" fill="none" stroke="#314867"/>
+  <rect x="166" y="914" width="730" height="32" rx="0" fill="#07101d" opacity="0.82"/>
+  <text x="196" y="934" fill="#98a8c8" font-family="Inter, Segoe UI, sans-serif" font-size="15">Current app state: dashboard, sidecar ready, config found</text>
+
+  <rect x="964" y="378" width="674" height="568" rx="20" fill="#0f182a"/>
+  <image href="auth.png" x="964" y="378" width="674" height="568" preserveAspectRatio="xMidYMid slice"/>
+  <rect x="964" y="378" width="674" height="568" rx="20" fill="none" stroke="#314867"/>
+  <rect x="964" y="914" width="674" height="32" rx="0" fill="#07101d" opacity="0.82"/>
+  <text x="994" y="934" fill="#98a8c8" font-family="Inter, Segoe UI, sans-serif" font-size="15">Browser SSO flow: GitHub, Azure DevOps, GitLab</text>
+
+  <rect x="140" y="1010" width="1520" height="52" rx="16" fill="#13223b" stroke="#274164"/>
+  <circle cx="178" cy="1036" r="8" fill="#50d67b"/>
+  <text x="198" y="1042" fill="#d8e7ff" font-family="Inter, Segoe UI, sans-serif" font-size="18">Native installer preview, real UI screenshots, and browser-based sign-in all shown from the current build</text>
+  <rect x="1388" y="1018" width="230" height="36" rx="12" fill="url(#accent)"/>
+  <text x="1421" y="1042" fill="#06111f" font-family="Inter, Segoe UI, sans-serif" font-size="16" font-weight="700">Built from real app captures</text>
+</svg>

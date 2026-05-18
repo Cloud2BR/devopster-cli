@@ -1,11 +1,27 @@
 name: Unified App Release (CLI + GUI)
 
 # Builds the DevOpster desktop app for macOS (Intel + Apple Silicon),
-# Windows x64, and Linux x64. Runs on manual dispatch and on `v*`
-# tags and publishes a single release containing both GUI installers
+# Windows x64, and Linux x64. Runs a lightweight validation on pull
+# requests, and performs full packaging on manual dispatch or
+# `v*` tags to publish a single release containing both GUI installers
 # and standalone CLI artifacts.
 
 on:
+  pull_request:
+    branches:
+      - main
+      - test
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - "src-tauri/**"
+      - "frontend/**"
+      - "assets/**"
+      - ".github/workflows/desktop-app.yml"
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       publish_release:
@@ -18,17 +34,12 @@ on:
         required: false
         type: string
         default: "v0.1.0"
-      build_macos_x64:
-        description: Build Intel macOS artifact (macos-13, may queue longer)
-        required: false
-        type: boolean
-        default: false
-  push:
-    tags:
-      - "v*"
-
 permissions:
   contents: write
+
+concurrency:
+  group: unified-release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -37,16 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - label: macos-arm64
-            os: macos-14
-            target: aarch64-apple-darwin
-          - label: linux-x64
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - label: windows-x64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"label":"linux-x64","os":"ubuntu-latest","target":"x86_64-unknown-linux-gnu"}]' || '[{"label":"macos-arm64","os":"macos-14","target":"aarch64-apple-darwin"},{"label":"macos-x64","os":"macos-13","target":"x86_64-apple-darwin"},{"label":"linux-x64","os":"ubuntu-latest","target":"x86_64-unknown-linux-gnu"},{"label":"windows-x64","os":"windows-latest","target":"x86_64-pc-windows-msvc"}]') }}
 
     steps:
       - name: Checkout
@@ -72,15 +74,13 @@ jobs:
             wget \
             file
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-            src-tauri/target
-          key: tauri-${{ matrix.label }}-${{ hashFiles('Cargo.lock', 'src-tauri/Cargo.toml') }}
+          shared-key: release-${{ matrix.target }}
+          workspaces: |
+            . -> target
+            src-tauri -> target
 
       - name: Build devopster CLI for target
         run: cargo build --release --target ${{ matrix.target }} --bin devopster
@@ -220,20 +220,21 @@ jobs:
           for dmg in "$DMG_DIR"/*.dmg; do
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
-            RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
-            hdiutil convert "$dmg" -format UDWR -o "$RW_DMG"
+            RW_DIR="$(mktemp -d /tmp/devopster-dmg-rw-XXXXXX)"
+            RW_DMG="$RW_DIR/rw-image.dmg"
+            hdiutil convert -format UDRW -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
-              rm -f "$RW_DMG"
+              rm -rf "$RW_DIR"
               exit 1
             fi
             rm -rf "$MOUNT/$APP_NAME"
             ditto "$APP_PATH" "$MOUNT/$APP_NAME"
             sync
             hdiutil detach "$MOUNT"
-            hdiutil convert "$RW_DMG" -format UDZO -o "$dmg" -ov
-            rm -f "$RW_DMG"
+            hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
+            rm -rf "$RW_DIR"
           done
 
       - name: Verify DMG contains signed app
@@ -343,8 +344,10 @@ jobs:
             tar -czf dist/devopster-cli-linux-x86_64.tar.gz -C "$CLI_ROOT" devopster
           elif [ "${{ runner.os }}" = "Windows" ] && [ -f "$CLI_ROOT/devopster.exe" ]; then
             cp "$CLI_ROOT/devopster.exe" dist/devopster-cli-windows-x86_64.exe
-          elif [ "${{ runner.os }}" = "macOS" ] && [ -f "$CLI_ROOT/devopster" ]; then
+          elif [ "${{ matrix.target }}" = "aarch64-apple-darwin" ] && [ -f "$CLI_ROOT/devopster" ]; then
             tar -czf dist/devopster-cli-macos-arm64.tar.gz -C "$CLI_ROOT" devopster
+          elif [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] && [ -f "$CLI_ROOT/devopster" ]; then
+            tar -czf dist/devopster-cli-macos-x86_64.tar.gz -C "$CLI_ROOT" devopster
           fi
           ls -la dist || true
 
@@ -356,275 +359,9 @@ jobs:
           path: dist/*
           if-no-files-found: warn
 
-  build_macos_x64:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.build_macos_x64 == true)
-    name: macos-x64
-    runs-on: macos-13
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-apple-darwin
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-            src-tauri/target
-          key: tauri-macos-x64-${{ hashFiles('Cargo.lock', 'src-tauri/Cargo.toml') }}
-
-      - name: Build devopster CLI for target
-        run: cargo build --release --target x86_64-apple-darwin --bin devopster
-
-      - name: Stage sidecar binary
-        shell: bash
-        run: |
-          mkdir -p src-tauri/binaries
-          cp "target/x86_64-apple-darwin/release/devopster" "src-tauri/binaries/devopster-x86_64-apple-darwin"
-          chmod +x "src-tauri/binaries/devopster-x86_64-apple-darwin"
-          ls -la src-tauri/binaries
-
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked --version "^2"
-
-      - name: Generate platform icons
-        run: cargo tauri icon assets/devopster-icon.png
-
-      - name: Build Tauri bundle
-        run: cargo tauri build --target x86_64-apple-darwin
-
-      - name: Import Apple signing certificate
-        shell: bash
-        env:
-          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
-          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "${APPLE_SIGNING_CERT_B64:-}" ] || [ -z "${APPLE_SIGNING_CERT_PASSWORD:-}" ]; then
-            echo "Apple signing cert secrets are not set; skipping Developer ID import."
-            exit 0
-          fi
-          KEYCHAIN_PASSWORD="${KEYCHAIN_PASSWORD:-temp-keychain-pass}"
-          echo "$APPLE_SIGNING_CERT_B64" | base64 --decode > signing-cert.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security import signing-cert.p12 -k build.keychain -P "$APPLE_SIGNING_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-
-      - name: Require notarized macOS release setup
-        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
-        shell: bash
-        env:
-          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
-          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: |
-          set -euo pipefail
-          missing=0
-          for var_name in APPLE_SIGNING_CERT_B64 APPLE_SIGNING_CERT_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_TEAM_ID APPLE_APP_SPECIFIC_PASSWORD; do
-            if [ -z "${!var_name:-}" ]; then
-              echo "Missing required secret for macOS public release: $var_name"
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo "Refusing to publish a macOS DMG that cannot be fully signed and notarized. Configure the Apple secrets above or run the workflow without publish_release."
-            exit 1
-          fi
-
-      - name: Sign macOS app (Developer ID)
-        shell: bash
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          set -euo pipefail
-          if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
-            echo "APPLE_SIGNING_IDENTITY is not set; skipping Developer ID signing."
-            exit 0
-          fi
-          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
-          if [ -d "$BUNDLE_ROOT/macos" ]; then
-            for app in "$BUNDLE_ROOT/macos"/*.app; do
-              [ -d "$app" ] || continue
-              codesign --force --deep --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$app"
-              codesign --verify --deep --strict --verbose=2 "$app"
-            done
-          fi
-
-      - name: Ad-hoc codesign macOS bundle
-        shell: bash
-        env:
-          APPLE_SIGNING_CERT_B64: ${{ secrets.APPLE_SIGNING_CERT_B64 }}
-          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          if [ -n "${APPLE_SIGNING_CERT_B64:-}" ] && [ -n "${APPLE_SIGNING_CERT_PASSWORD:-}" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
-            echo "Developer ID signing is configured; skipping ad-hoc codesign fallback."
-            exit 0
-          fi
-          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
-          if [ -d "$BUNDLE_ROOT/macos" ]; then
-            for app in "$BUNDLE_ROOT/macos"/*.app; do
-              [ -d "$app" ] || continue
-              codesign --force --deep --options runtime --sign - "$app"
-              codesign --verify --deep --strict --verbose=2 "$app" || true
-            done
-          fi
-
-      - name: Repack DMG with signed app
-        shell: bash
-        run: |
-          set -euo pipefail
-          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
-          APP_DIR="$BUNDLE_ROOT/macos"
-          DMG_DIR="$BUNDLE_ROOT/dmg"
-          if [ ! -d "$APP_DIR" ] || [ ! -d "$DMG_DIR" ]; then
-            echo "No macOS app bundle or DMG directory to repack."
-            exit 0
-          fi
-          APP_PATH=$(ls "$APP_DIR"/*.app 2>/dev/null | head -n 1 || true)
-          if [ -z "$APP_PATH" ]; then
-            echo "No .app bundle found to repack."
-            exit 0
-          fi
-          APP_NAME=$(basename "$APP_PATH")
-          for dmg in "$DMG_DIR"/*.dmg; do
-            [ -f "$dmg" ] || continue
-            echo "Repacking DMG with signed app: $dmg"
-            RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
-            hdiutil convert "$dmg" -format UDWR -o "$RW_DMG"
-            MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
-            if [ -z "$MOUNT" ]; then
-              echo "Failed to mount writable DMG."
-              rm -f "$RW_DMG"
-              exit 1
-            fi
-            rm -rf "$MOUNT/$APP_NAME"
-            ditto "$APP_PATH" "$MOUNT/$APP_NAME"
-            sync
-            hdiutil detach "$MOUNT"
-            hdiutil convert "$RW_DMG" -format UDZO -o "$dmg" -ov
-            rm -f "$RW_DMG"
-          done
-
-      - name: Verify DMG contains signed app
-        shell: bash
-        run: |
-          set -euo pipefail
-          DMG_DIR="src-tauri/target/x86_64-apple-darwin/release/bundle/dmg"
-          if [ -d "$DMG_DIR" ]; then
-            for dmg in "$DMG_DIR"/*.dmg; do
-              [ -f "$dmg" ] || continue
-              echo "Verifying app inside: $dmg"
-              MOUNT=$(hdiutil attach -nobrowse -readonly "$dmg" | awk '/Volumes/ {print $3; exit}')
-              if [ -z "$MOUNT" ]; then
-                echo "Failed to mount DMG for verification: $dmg"
-                exit 1
-              fi
-              APP_PATH=$(find "$MOUNT" -maxdepth 2 -name "*.app" -print -quit)
-              if [ -z "$APP_PATH" ]; then
-                echo "No .app bundle found in $dmg"
-                hdiutil detach "$MOUNT" || true
-                exit 1
-              fi
-              if ! codesign --verify --deep --strict --verbose=2 "$APP_PATH"; then
-                echo "codesign verification failed for $APP_PATH"
-                hdiutil detach "$MOUNT" || true
-                exit 1
-              fi
-              if [ ! -d "$APP_PATH/Contents/_CodeSignature" ]; then
-                echo "Missing _CodeSignature in $APP_PATH"
-                hdiutil detach "$MOUNT" || true
-                exit 1
-              fi
-              hdiutil detach "$MOUNT"
-            done
-          fi
-
-      - name: Sign macOS DMG (Developer ID)
-        shell: bash
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          set -euo pipefail
-          if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
-            echo "APPLE_SIGNING_IDENTITY is not set; skipping DMG signing."
-            exit 0
-          fi
-          DMG_DIR="src-tauri/target/x86_64-apple-darwin/release/bundle/dmg"
-          if [ -d "$DMG_DIR" ]; then
-            for dmg in "$DMG_DIR"/*.dmg; do
-              [ -f "$dmg" ] || continue
-              codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$dmg"
-            done
-          fi
-
-      - name: Notarize and staple DMG
-        shell: bash
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -z "${APPLE_ID:-}" ] || [ -z "${APPLE_TEAM_ID:-}" ] || [ -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" ]; then
-            echo "Apple notarization secrets are not set; skipping notarization."
-            exit 0
-          fi
-          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle/dmg"
-          if [ -d "$BUNDLE_ROOT" ]; then
-            for dmg in "$BUNDLE_ROOT"/*.dmg; do
-              [ -f "$dmg" ] || continue
-              xcrun notarytool submit "$dmg" \
-                --apple-id "$APPLE_ID" \
-                --team-id "$APPLE_TEAM_ID" \
-                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-                --wait
-              xcrun stapler staple "$dmg"
-              xcrun stapler validate "$dmg"
-            done
-          fi
-
-      - name: Collect bundles
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p dist
-          BUNDLE_ROOT="src-tauri/target/x86_64-apple-darwin/release/bundle"
-          if [ -d "$BUNDLE_ROOT" ]; then
-            find "$BUNDLE_ROOT" -type f \
-              \( -name "*.dmg" -o -name "*.app.tar.gz" \) \
-              -exec cp {} dist/ \; || true
-          fi
-          CLI_ROOT="target/x86_64-apple-darwin/release"
-          if [ -f "$CLI_ROOT/devopster" ]; then
-            tar -czf dist/devopster-cli-macos-x86_64.tar.gz -C "$CLI_ROOT" devopster
-          fi
-          ls -la dist || true
-
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: devopster-desktop-macos-x64
-          path: dist/*
-          if-no-files-found: warn
-
   publish:
-    if: (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)) && needs.build.result == 'success' && (needs.build_macos_x64.result == 'success' || needs.build_macos_x64.result == 'skipped')
-    needs: [build, build_macos_x64]
+    if: (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)) && needs.build.result == 'success'
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts

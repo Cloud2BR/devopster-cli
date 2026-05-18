@@ -11,10 +11,34 @@ const routeTitle = document.getElementById("route-title");
 const routeSub = document.getElementById("route-sub");
 const topbarActions = document.getElementById("topbar-actions");
 const toastEl = document.getElementById("toast");
+const cliDrawer = document.getElementById("cli-drawer");
+const cliInput = document.getElementById("cli-input");
+const cliSave = document.getElementById("cli-save");
+const cliRun = document.getElementById("cli-run");
+const cliClear = document.getElementById("cli-clear");
+const cliClose = document.getElementById("cli-close");
+const cliOutput = document.getElementById("cli-output");
+const cliTabs = document.querySelectorAll(".cli-tab");
+const cliPanels = document.querySelectorAll(".cli-panel");
+const cliHistoryList = document.getElementById("cli-history-list");
+const cliSavedList = document.getElementById("cli-saved-list");
+const cliHistoryClear = document.getElementById("cli-history-clear");
+const cliSavedClear = document.getElementById("cli-saved-clear");
 
 let env = null;
 let currentRoute = "dashboard";
 let consoleBuffer = [];
+let cliHistory = [];
+let cliSaved = [];
+let cliStateLoaded = false;
+let currentTheme = "light";
+let cliRunning = false;
+
+const HISTORY_LIMIT = 50;
+const HISTORY_KEY = "devopsterCliHistory";
+const SAVED_KEY = "devopsterCliSaved";
+const BUFFER_LIMIT = 3000;
+const THEME_KEY = "devopsterTheme";
 
 // ───── helpers ─────────────────────────────────────────────────────
 function el(tag, props = {}, children = []) {
@@ -44,6 +68,15 @@ function toast(msg, kind = "") {
 
 function setActions(buttons) {
   clear(topbarActions);
+  if (!setActions._cliBtn) {
+    setActions._cliBtn = actionBtn("CLI Panel", () => toggleCliDrawer());
+  }
+  if (!setActions._themeBtn) {
+    setActions._themeBtn = actionBtn("", () => toggleTheme());
+  }
+  updateThemeButton();
+  topbarActions.appendChild(setActions._cliBtn);
+  topbarActions.appendChild(setActions._themeBtn);
   for (const b of buttons) topbarActions.appendChild(b);
 }
 
@@ -63,9 +96,188 @@ function emptyState(text) {
   return el("div", { class: "empty" }, text);
 }
 
+function applyTheme(theme, persist = true) {
+  currentTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", currentTheme);
+  updateThemeButton();
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, currentTheme); } catch (err) {}
+  }
+}
+
+function updateThemeButton() {
+  if (!setActions._themeBtn) return;
+  const nextLabel = currentTheme === "dark" ? "Light Mode" : "Dark Mode";
+  setActions._themeBtn.textContent = nextLabel;
+  setActions._themeBtn.setAttribute(
+    "aria-label",
+    currentTheme === "dark" ? "Switch to light theme" : "Switch to dark theme"
+  );
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme === "dark" ? "light" : "dark");
+}
+
+function initTheme() {
+  let stored = null;
+  try { stored = localStorage.getItem(THEME_KEY); } catch (err) {}
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = stored || (prefersDark ? "dark" : "light");
+  applyTheme(next, false);
+}
+
+function trimConsoleBuffer() {
+  if (consoleBuffer.length > BUFFER_LIMIT) {
+    consoleBuffer = consoleBuffer.slice(-BUFFER_LIMIT);
+  }
+}
+
+function renderCliOutput() {
+  if (!cliOutput) return;
+  trimConsoleBuffer();
+  cliOutput.textContent = consoleBuffer.join("") || "Ready.\n";
+  cliOutput.scrollTop = cliOutput.scrollHeight;
+}
+
+function loadCliState() {
+  try {
+    const rawHistory = localStorage.getItem(HISTORY_KEY) || "[]";
+    const rawSaved = localStorage.getItem(SAVED_KEY) || "[]";
+    cliHistory = JSON.parse(rawHistory);
+    cliSaved = JSON.parse(rawSaved);
+    if (!Array.isArray(cliHistory)) cliHistory = [];
+    if (!Array.isArray(cliSaved)) cliSaved = [];
+  } catch (err) {
+    cliHistory = [];
+    cliSaved = [];
+  }
+}
+
+function saveCliState() {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(cliHistory.slice(0, HISTORY_LIMIT)));
+    localStorage.setItem(SAVED_KEY, JSON.stringify(cliSaved));
+  } catch (err) {
+    // ignore persistence errors (private mode, etc.)
+  }
+}
+
+function setCliTab(tab) {
+  cliTabs.forEach((btn) => {
+    const isActive = btn.dataset.tab === tab;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  cliPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.panel === tab);
+  });
+}
+
+function renderCliList(listEl, rows, options) {
+  if (!listEl) return;
+  clear(listEl);
+  if (!rows.length) {
+    listEl.appendChild(el("div", { class: "cli-empty", text: options.empty }));
+    return;
+  }
+  rows.forEach((cmd) => {
+    const row = el("div", { class: "cli-list-item" }, [
+      el("div", { class: "cli-list-command", text: cmd }),
+      el("div", { class: "cli-list-actions" }, options.actions(cmd)),
+    ]);
+    row.addEventListener("dblclick", () => runCliCommand(cmd));
+    listEl.appendChild(row);
+  });
+}
+
+function renderHistory() {
+  renderCliList(cliHistoryList, cliHistory, {
+    empty: "No CLI history yet.",
+    actions: (cmd) => [
+      listBtn("Run", () => runCliCommand(cmd)),
+      listBtn("Save", () => addSaved(cmd)),
+    ],
+  });
+}
+
+function renderSaved() {
+  renderCliList(cliSavedList, cliSaved, {
+    empty: "No saved commands yet.",
+    actions: (cmd) => [
+      listBtn("Run", () => runCliCommand(cmd)),
+      listBtn("Remove", () => removeSaved(cmd)),
+    ],
+  });
+}
+
+function ensureCliState() {
+  if (cliStateLoaded) return;
+  loadCliState();
+  renderHistory();
+  renderSaved();
+  cliStateLoaded = true;
+}
+
+function addHistory(cmd) {
+  if (!cmd) return;
+  if (cliHistory[0] === cmd) return;
+  cliHistory.unshift(cmd);
+  if (cliHistory.length > HISTORY_LIMIT) cliHistory = cliHistory.slice(0, HISTORY_LIMIT);
+  saveCliState();
+  renderHistory();
+}
+
+function addSaved(cmd) {
+  if (!cmd) return;
+  if (cliSaved.includes(cmd)) return;
+  cliSaved.unshift(cmd);
+  saveCliState();
+  renderSaved();
+  toast("Saved command.", "ok");
+}
+
+function removeSaved(cmd) {
+  cliSaved = cliSaved.filter((c) => c !== cmd);
+  saveCliState();
+  renderSaved();
+}
+
+function listBtn(label, onClick) {
+  const btn = el("button", { class: "cli-list-btn", text: label });
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+
+function setCliOpen(open) {
+  document.body.classList.toggle("cli-open", open);
+  if (cliDrawer) cliDrawer.setAttribute("aria-hidden", open ? "false" : "true");
+  if (open && cliInput) cliInput.focus();
+  if (open) {
+    ensureCliState();
+    renderCliOutput();
+  }
+}
+
+function toggleCliDrawer(force) {
+  const isOpen = document.body.classList.contains("cli-open");
+  setCliOpen(typeof force === "boolean" ? force : !isOpen);
+}
+
+function setCliBusy(busy) {
+  cliRunning = busy;
+  if (cliRun) cliRun.disabled = busy;
+  if (cliSave) cliSave.disabled = busy;
+  if (cliInput) cliInput.disabled = busy;
+  if (cliHistoryClear) cliHistoryClear.disabled = busy;
+  if (cliSavedClear) cliSavedClear.disabled = busy;
+  document.body.classList.toggle("cli-busy", busy);
+}
+
 // ───── routes ─────────────────────────────────────────────────────
 const routes = {
   dashboard: renderDashboard,
+  auth: renderAuth,
   diagnostics: renderDiagnostics,
   inventory: renderInventory,
   audit: renderAudit,
@@ -110,11 +322,12 @@ async function renderDashboard() {
   view.appendChild(el("div", { class: "card", style: "margin-top:18px" }, [
     el("h3", { text: "Quick actions" }),
     el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" }, [
+      actionBtn("Sign in", () => navigate("auth")),
       actionBtn("Run diagnostics", () => navigate("diagnostics")),
       actionBtn("Open inventory", () => navigate("inventory")),
-      actionBtn("Audit repos", () => navigate("audit")),
-      actionBtn("Edit config", () => navigate("config")),
-      actionBtn("Open console", () => navigate("console")),
+      actionBtn("Repository audit", () => navigate("audit")),
+      actionBtn("Edit configuration", () => navigate("config")),
+      actionBtn("Open terminal", () => navigate("console")),
     ]),
   ]));
 
@@ -140,6 +353,58 @@ function actionBtn(label, fn) {
   return b;
 }
 
+// ───── AUTHENTICATION ─────────────────────────────────────────────
+async function renderAuth() {
+  setHeader("Authentication", "Connect browser-based SSO before previewing data.");
+  clear(view);
+
+  view.appendChild(el("div", { class: "card" }, [
+    el("h3", { text: "Sign in with your provider" }),
+    el("p", { text: "These flows open the system browser and complete via the provider's own login experience. Use them before running inventory, audit, or stats screens." }),
+    el("div", { style: "margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" }, [
+      btn("GitHub", "btn-primary", () => runProviderLogin(["login", "github"])),
+      btn("Azure DevOps", "btn-primary", () => runProviderLogin(["login", "azure-devops"])),
+      btn("GitLab", "btn-primary", () => runProviderLogin(["login", "gitlab"])),
+      btn("All providers", "btn", () => runProviderLogin(["login", "all"])),
+      btn("Refresh status", "btn", renderAuth),
+    ]),
+  ]));
+
+  const out = el("div", { class: "card", style: "margin-top:14px" }, [
+    el("h3", { text: "Sign-in status" }),
+    el("div", { id: "auth-status", class: "console", style: "margin-top:10px;height:auto;min-height:180px" }, "Loading status…"),
+  ]);
+  view.appendChild(out);
+
+  try {
+    const res = await invoke("run_devopster", { args: ["login", "status"] });
+    const statusEl = document.getElementById("auth-status");
+    if (statusEl) {
+      statusEl.textContent = (res.stdout || "") + (res.stderr ? "\n[stderr]\n" + res.stderr : "");
+    }
+  } catch (err) {
+    const statusEl = document.getElementById("auth-status");
+    if (statusEl) {
+      statusEl.textContent = String(err);
+    }
+  }
+}
+
+async function runProviderLogin(args) {
+  const statusEl = document.getElementById("auth-status");
+  if (statusEl) statusEl.textContent = `Running devopster ${args.join(" ")}…`;
+  try {
+    const res = await invoke("run_devopster", { args });
+    if (statusEl) {
+      statusEl.textContent = (res.stdout || "") + (res.stderr ? "\n[stderr]\n" + res.stderr : "");
+    }
+    toast("Sign-in completed.", res.status === 0 ? "ok" : "err");
+  } catch (err) {
+    if (statusEl) statusEl.textContent = String(err);
+    toast(String(err), "err");
+  }
+}
+
 // ───── DIAGNOSTICS ────────────────────────────────────────────────
 async function renderDiagnostics() {
   setHeader("Diagnostics", "Check Docker and provider CLI tooling readiness.");
@@ -163,7 +428,7 @@ async function renderDiagnostics() {
 
     setActions([
       actionBtn("Re-run", renderDiagnostics),
-      actionBtn("Open console", () => navigate("console")),
+      actionBtn("Open CLI mode", () => { setCliTab("terminal"); setCliOpen(true); }),
     ]);
   } catch (err) {
     clear(view);
@@ -272,7 +537,7 @@ async function renderInventory() {
 
 // ───── REPO AUDIT ─────────────────────────────────────────────────
 async function renderAudit() {
-  setHeader("Repository audit", "Run policy checks across every targeted repository.");
+  setHeader("Repository Audit", "Run policy checks across every targeted repository.");
   clear(view);
 
   view.appendChild(el("div", { class: "card" }, [
@@ -316,7 +581,7 @@ function btn(label, cls, fn) {
 
 // ───── STATS ──────────────────────────────────────────────────────
 async function renderStats() {
-  setHeader("Stats", "Org-wide metadata coverage and compliance.");
+  setHeader("Statistics", "Org-wide metadata coverage and compliance.");
   clear(view);
   view.appendChild(loading("Computing stats…"));
   try {
@@ -391,20 +656,25 @@ async function renderSetup() {
     el("h3", { text: "Run guided setup" }),
     el("p", { text: "Prompts will appear in the streamed output. Setup configures providers and writes devopster-config.yaml." }),
     el("div", { style: "margin-top:12px" }, [
-      btn("Start setup", "btn-primary", () => navigate("console") || streamCmd(["setup"], "Setup")),
+      btn("Start setup", "btn-primary", () => {
+        setCliTab("terminal");
+        setCliOpen(true);
+        runCliCommand("setup");
+      }),
     ]),
   ]));
 }
 
 // ───── CONFIG editor ──────────────────────────────────────────────
 async function renderConfig() {
-  setHeader("Config", `Edit ${env?.config_path || "devopster-config.yaml"}.`);
+  setHeader("Configuration", `Edit ${env?.config_path || "devopster-config.yaml"}.`);
   clear(view);
   view.appendChild(loading("Reading config…"));
 
   let text = "";
-  try { text = await invoke("read_config", { path: env?.config_path || "devopster-config.yaml" }); }
-  catch (err) {
+  try {
+    text = await invoke("read_config", { path: env?.config_path || "devopster-config.yaml" });
+  } catch (err) {
     text = `# Config not yet present.\n# Generate one from the Setup screen, or paste a starter template here and Save.\n`;
   }
 
@@ -429,46 +699,19 @@ async function renderConfig() {
 
 // ───── CONSOLE (live streaming arbitrary commands) ────────────────
 async function renderConsole() {
-  setHeader("Console", "Run any allow-listed devopster subcommand with live output.");
+  setHeader("Terminal", "Run devopster commands without leaving the app.");
   clear(view);
-
-  const input = el("input", {
-    class: "input", placeholder: "e.g. repo audit --report-only", autocomplete: "off",
-    style: "width:auto;flex:1;min-width:240px",
-  });
-  const runBtn = btn("Run", "btn-primary", run);
-  const clearBtn = btn("Clear", "btn", () => { consoleBuffer = []; renderConsoleOut(); });
-
-  const toolbar = el("div", { class: "toolbar" }, [input, runBtn, clearBtn]);
-  view.appendChild(toolbar);
-
-  const out = el("pre", { id: "console-out", class: "console", text: consoleBuffer.join("") || "Ready.\n" });
-  view.appendChild(out);
-
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
-
-  function renderConsoleOut() {
-    const node = document.getElementById("console-out");
-    if (node) { node.textContent = consoleBuffer.join("") || "Ready.\n"; node.scrollTop = node.scrollHeight; }
-  }
-
-  async function run() {
-    const raw = input.value.trim();
-    if (!raw) return;
-    const args = parseArgs(raw);
-    consoleBuffer.push(`\n$ devopster ${args.join(" ")}\n`);
-    renderConsoleOut();
-    runBtn.disabled = true;
-    try {
-      const code = await streamCmd(args, raw);
-      consoleBuffer.push(`\n[exit ${code}]\n`);
-    } catch (err) {
-      consoleBuffer.push(`\n[error] ${err}\n`);
-    } finally {
-      runBtn.disabled = false;
-      renderConsoleOut();
-    }
-  }
+  view.appendChild(el("div", { class: "card" }, [
+    el("h3", { text: "CLI Mode" }),
+    el("p", { text: "The CLI panel is always available at the bottom of the app. Use Terminal, History, and Saved tabs to run commands fast." }),
+    el("div", { style: "margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" }, [
+      btn("Open CLI panel", "btn-primary", () => { setCliTab("terminal"); setCliOpen(true); }),
+      btn("Open history", "btn", () => { setCliTab("history"); setCliOpen(true); }),
+      btn("Clear output", "btn", () => { consoleBuffer = []; renderCliOutput(); }),
+    ]),
+  ]));
+  setCliTab("terminal");
+  setCliOpen(true);
 }
 
 function parseArgs(raw) {
@@ -485,20 +728,77 @@ async function streamCmd(args, label) {
     streamCmd._subscribed = true;
     await listen("devopster:stdout", (ev) => {
       consoleBuffer.push(ev.payload + "\n");
-      const node = document.getElementById("console-out");
-      if (node) { node.textContent = consoleBuffer.join("") || "Ready.\n"; node.scrollTop = node.scrollHeight; }
+      renderCliOutput();
     });
     await listen("devopster:stderr", (ev) => {
       consoleBuffer.push(`[err] ${ev.payload}\n`);
-      const node = document.getElementById("console-out");
-      if (node) { node.textContent = consoleBuffer.join("") || "Ready.\n"; node.scrollTop = node.scrollHeight; }
+      renderCliOutput();
     });
   }
   return await invoke("stream_devopster", { args });
 }
 
+async function runCliCommand(raw) {
+  const cmd = raw.trim();
+  if (!cmd) return;
+  if (cliRunning) {
+    toast("A command is already running.", "err");
+    return;
+  }
+  addHistory(cmd);
+  if (cliInput) cliInput.value = cmd;
+  const args = parseArgs(cmd);
+  consoleBuffer.push(`\n$ devopster ${args.join(" ")}\n`);
+  renderCliOutput();
+  setCliBusy(true);
+  try {
+    const code = await streamCmd(args, cmd);
+    consoleBuffer.push(`\n[exit ${code}]\n`);
+  } catch (err) {
+    consoleBuffer.push(`\n[error] ${err}\n`);
+  } finally {
+    setCliBusy(false);
+    if (cliInput) cliInput.focus();
+    renderCliOutput();
+  }
+}
+
+async function runCliFromDrawer() {
+  const raw = (cliInput?.value || "").trim();
+  if (!raw) return;
+  runCliCommand(raw);
+}
+
+if (cliRun) cliRun.addEventListener("click", runCliFromDrawer);
+if (cliInput) cliInput.addEventListener("keydown", (e) => { if (e.key === "Enter") runCliFromDrawer(); });
+if (cliClear) cliClear.addEventListener("click", () => { consoleBuffer = []; renderCliOutput(); });
+if (cliClose) cliClose.addEventListener("click", () => setCliOpen(false));
+if (cliSave) cliSave.addEventListener("click", () => {
+  const raw = (cliInput?.value || "").trim();
+  if (!raw) { toast("Enter a command to save.", "err"); return; }
+  addSaved(raw);
+});
+if (cliHistoryClear) cliHistoryClear.addEventListener("click", () => {
+  cliHistory = [];
+  saveCliState();
+  renderHistory();
+});
+if (cliSavedClear) cliSavedClear.addEventListener("click", () => {
+  cliSaved = [];
+  saveCliState();
+  renderSaved();
+});
+cliTabs.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setCliTab(btn.dataset.tab);
+    setCliOpen(true);
+  });
+});
+
 // ───── boot ───────────────────────────────────────────────────────
 (async function boot() {
+  initTheme();
+  ensureCliState();
   try {
     env = await invoke("env_info");
   } catch (err) {
