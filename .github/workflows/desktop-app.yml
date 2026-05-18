@@ -10,6 +10,15 @@ on:
   pull_request:
     branches:
       - main
+      - test
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - "src-tauri/**"
+      - "frontend/**"
+      - "assets/**"
+      - ".github/workflows/desktop-app.yml"
   push:
     branches:
       - main
@@ -35,8 +44,13 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: unified-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
+    if: github.event_name != 'pull_request' || matrix.label == 'linux-x64'
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     strategy:

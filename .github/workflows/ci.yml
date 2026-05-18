@@ -4,7 +4,28 @@ on:
   push:
     branches:
       - main
+      - test
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - "src-tauri/**"
+      - "frontend/**"
+      - "Dockerfile"
+      - ".github/workflows/ci.yml"
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - "src-tauri/**"
+      - "frontend/**"
+      - "Dockerfile"
+      - ".github/workflows/ci.yml"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   container-preflight:
