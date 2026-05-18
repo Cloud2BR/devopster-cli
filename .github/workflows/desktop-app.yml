@@ -1,11 +1,20 @@
 name: Unified App Release (CLI + GUI)
 
 # Builds the DevOpster desktop app for macOS (Intel + Apple Silicon),
-# Windows x64, and Linux x64. Runs on manual dispatch and on `v*`
-# tags and publishes a single release containing both GUI installers
+# Windows x64, and Linux x64. Runs on pull requests and main pushes
+# to produce downloadable build artifacts, and on manual dispatch or
+# `v*` tags to publish a single release containing both GUI installers
 # and standalone CLI artifacts.
 
 on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       publish_release:
@@ -23,10 +32,6 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    tags:
-      - "v*"
-
 permissions:
   contents: write
 
@@ -221,7 +226,7 @@ jobs:
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
             RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
-            hdiutil convert "$dmg" -format UDWR -o "$RW_DMG"
+            hdiutil convert -format UDWR -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
@@ -232,7 +237,7 @@ jobs:
             ditto "$APP_PATH" "$MOUNT/$APP_NAME"
             sync
             hdiutil detach "$MOUNT"
-            hdiutil convert "$RW_DMG" -format UDZO -o "$dmg" -ov
+            hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
             rm -f "$RW_DMG"
           done
 
@@ -504,7 +509,7 @@ jobs:
             [ -f "$dmg" ] || continue
             echo "Repacking DMG with signed app: $dmg"
             RW_DMG="$(mktemp /tmp/devopster-dmg-rw-XXXXXX.dmg)"
-            hdiutil convert "$dmg" -format UDWR -o "$RW_DMG"
+            hdiutil convert -format UDWR -o "$RW_DMG" "$dmg"
             MOUNT=$(hdiutil attach -nobrowse "$RW_DMG" | awk '/Volumes/ {print $3; exit}')
             if [ -z "$MOUNT" ]; then
               echo "Failed to mount writable DMG."
@@ -515,7 +520,7 @@ jobs:
             ditto "$APP_PATH" "$MOUNT/$APP_NAME"
             sync
             hdiutil detach "$MOUNT"
-            hdiutil convert "$RW_DMG" -format UDZO -o "$dmg" -ov
+            hdiutil convert -format UDZO -o "$dmg" -ov "$RW_DMG"
             rm -f "$RW_DMG"
           done
 

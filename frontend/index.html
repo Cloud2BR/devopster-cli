@@ -22,22 +22,23 @@
         </div>
 
         <nav id="nav">
-          <button class="nav" data-route="dashboard"><span>🏠</span> Dashboard</button>
-          <button class="nav" data-route="diagnostics"><span>🩺</span> Diagnostics</button>
-          <button class="nav" data-route="inventory"><span>📦</span> Inventory</button>
-          <button class="nav" data-route="audit"><span>🛡️</span> Repo audit</button>
-          <button class="nav" data-route="stats"><span>📊</span> Stats</button>
-          <button class="nav" data-route="catalog"><span>📚</span> Catalog</button>
-          <button class="nav" data-route="topics"><span>🏷️</span> Topics</button>
-          <button class="nav" data-route="setup"><span>⚙️</span> Setup</button>
-          <button class="nav" data-route="config"><span>📝</span> Config</button>
-          <button class="nav" data-route="console"><span>🖥️</span> Console</button>
+          <button class="nav" data-route="dashboard">Dashboard</button>
+          <button class="nav" data-route="auth">Authentication</button>
+          <button class="nav" data-route="diagnostics">Diagnostics</button>
+          <button class="nav" data-route="inventory">Inventory</button>
+          <button class="nav" data-route="audit">Repository Audit</button>
+          <button class="nav" data-route="stats">Statistics</button>
+          <button class="nav" data-route="catalog">Catalog</button>
+          <button class="nav" data-route="topics">Topics</button>
+          <button class="nav" data-route="setup">Setup</button>
+          <button class="nav" data-route="config">Configuration</button>
+          <button class="nav" data-route="console">Terminal</button>
         </nav>
 
         <div class="sidebar-foot">
           <div id="env-os">os: …</div>
           <div id="env-sidecar">sidecar: …</div>
-          <a href="https://cloud2br.github.io/devopster-cli/" target="_blank" rel="noopener noreferrer">Project site ↗</a>
+          <a href="https://cloud2br.github.io/devopster-cli/" target="_blank" rel="noopener noreferrer">Project site →</a>
         </div>
       </aside>
 
@@ -54,6 +55,43 @@
     </div>
 
     <div id="toast" class="toast"></div>
+    <div id="cli-drawer" class="cli-drawer" aria-hidden="true">
+      <div class="cli-drawer-header">
+        <div class="cli-drawer-title">CLI Mode</div>
+        <div class="cli-drawer-actions">
+          <button id="cli-clear" class="btn" type="button">Clear</button>
+          <button id="cli-close" class="btn" type="button">Close</button>
+        </div>
+      </div>
+      <div class="cli-drawer-tabs" role="tablist">
+        <button class="cli-tab active" data-tab="terminal" role="tab" aria-selected="true">Terminal</button>
+        <button class="cli-tab" data-tab="history" role="tab" aria-selected="false">History</button>
+        <button class="cli-tab" data-tab="saved" role="tab" aria-selected="false">Saved</button>
+      </div>
+      <div class="cli-panel active" data-panel="terminal">
+        <div class="cli-drawer-toolbar">
+          <input id="cli-input" class="input" type="text" placeholder="e.g. repo audit --report-only" autocomplete="off" />
+          <button id="cli-save" class="btn" type="button">Save</button>
+          <button id="cli-run" class="btn btn-primary" type="button">Run</button>
+        </div>
+        <pre id="cli-output" class="console cli-console">Ready.
+</pre>
+      </div>
+      <div class="cli-panel" data-panel="history">
+        <div class="cli-panel-actions">
+          <span class="cli-panel-hint">Click a command to run it again.</span>
+          <button id="cli-history-clear" class="btn" type="button">Clear history</button>
+        </div>
+        <div id="cli-history-list" class="cli-list"></div>
+      </div>
+      <div class="cli-panel" data-panel="saved">
+        <div class="cli-panel-actions">
+          <span class="cli-panel-hint">Pin your go-to commands.</span>
+          <button id="cli-saved-clear" class="btn" type="button">Clear saved</button>
+        </div>
+        <div id="cli-saved-list" class="cli-list"></div>
+      </div>
+    </div>
 
     <script type="module" src="app.js"></script>
   </body>
