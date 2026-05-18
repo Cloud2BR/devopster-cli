@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - test
   workflow_dispatch:
 
 permissions:
@@ -41,6 +42,14 @@ jobs:
           mkdir -p _site/assets
           cp -R docs/. _site/
           cp -R assets/. _site/assets/
+
+      - name: Deploy to test subdirectory if on test branch
+        if: github.ref == 'refs/heads/test'
+        run: |
+          mkdir -p _site_prod/test
+          mv _site/* _site_prod/test/ || true
+          rm -rf _site
+          mv _site_prod _site
 
       - name: Snapshot latest release assets for site
         env:
