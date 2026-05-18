@@ -85,7 +85,7 @@ jobs:
             os: macos-14
             target: aarch64-apple-darwin
           - label: macos-x64
-            os: macos-13
+            os: macos-latest
             target: x86_64-apple-darwin
           - label: linux-x64
             os: ubuntu-latest
@@ -255,7 +255,7 @@ jobs:
             echo "No macOS app bundle or DMG directory to repack."
             exit 0
           fi
-          APP_PATH=$(ls "$APP_DIR"/*.app 2>/dev/null | head -n 1 || true)
+          APP_PATH=$(find "$APP_DIR" -maxdepth 1 -name '*.app' | head -n 1 || true)
           if [ -z "$APP_PATH" ]; then
             echo "No .app bundle found to repack."
             exit 0

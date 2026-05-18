@@ -49,7 +49,7 @@ jobs:
               DIRS=$(echo "$DIR_FILES" | sed 's|/.*||' | sort -u)
               while IFS= read -r dir; do
                 [ -z "$dir" ] && continue
-                COUNT=$(echo "$DIR_FILES" | grep "^${dir}/" | wc -l | tr -d ' ')
+                COUNT=$(echo "$DIR_FILES" | grep -c "^${dir}/" | tr -d ' ')
                 NAMES=$(echo "$DIR_FILES" | grep "^${dir}/" | sed "s|^${dir}/||" | head -8 | tr '\n' ', ' | sed 's/,$//' | sed 's/,/, /g')
                 FILE_SUMMARY="${FILE_SUMMARY}- \`${dir}/\`: ${COUNT} file(s) — ${NAMES}"$'\n'
               done <<< "$DIRS"
